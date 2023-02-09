@@ -6,6 +6,11 @@ Feb 8, 2023
     - Beween one server and one client
 - Questions
     - How to know which ports are available to connect to?
+    - What kind of text wildcards do we need to support? (Wrt #2 on the spec)
+        - Are prefixes/suffixes/substrings enough? Or do we need to support more complicated stuff like regexp?
+        - One group is using tries, but these only support prefix/suffix
+    - How to exit from chat — is newline “\n” fine?
+    - When can the user list accounts? Should the user be able to trigger this feature anytime using a certain message string? Or does the user only need to be able to do this before they connect to a client/server?
 - Things to add/fix
     - Currently assumes server and client must message back and forth:
       one side waits until the other responds to be able to send a message.
