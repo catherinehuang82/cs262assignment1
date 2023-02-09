@@ -1,0 +1,18 @@
+Log of ideas/updates!
+
+Feb 8, 2023
+=============================================================================
+- Got a basic connection/messaging service working!
+    - Beween one server and one client
+- Questions
+    - How to know which ports are available to connect to?
+- Things to add/fix
+    - Currently assumes server and client must message back and forth:
+      one side waits until the other responds to be able to send a message.
+      We should allow people to message without waiting.
+    - Need to keep track of multiple users with usernames and make threads
+      for each one. Be able to list accounts. Specify which user you want to
+      send a message to when sending messages.
+    - Implement ability to delete accounts.
+    - Implement queueing messages for users that are not currently logged in.
+    - Implement error for nonexistent users.
