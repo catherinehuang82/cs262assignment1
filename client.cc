@@ -15,32 +15,40 @@
 #include <fcntl.h>
 #include <fstream>
 using namespace std;
+
 //Client side
+
+#define TRUE   1 
+#define FALSE  0 
+#define PORT 4444 
+
 int main(int argc, char *argv[])
 {
     //we need 2 things: ip address and port number, in that order
-    if(argc != 3)
+    if(argc != 2)
     {
-        cerr << "Usage: ip_address port" << endl; exit(0); 
+        cerr << "Usage: ip_address" << endl; exit(0); 
     } //grab the IP address and port number 
-    char *serverIp = argv[1]; int port = atoi(argv[2]); 
+    char *serverIp = argv[1]; 
+    // int port = atoi(argv[2]); 
     //create a message buffer 
     char msg[1500]; 
     //setup a socket and connection tools 
     struct hostent* host = gethostbyname(serverIp); 
+    // server address
     sockaddr_in sendSockAddr;   
     bzero((char*)&sendSockAddr, sizeof(sendSockAddr)); 
     sendSockAddr.sin_family = AF_INET; 
     sendSockAddr.sin_addr.s_addr = 
         inet_addr(inet_ntoa(*(struct in_addr*)*host->h_addr_list));
-    sendSockAddr.sin_port = htons(port);
+    sendSockAddr.sin_port = htons(PORT);
     int clientSd = socket(AF_INET, SOCK_STREAM, 0);
     //try to connect...
     int status = connect(clientSd,
                          (sockaddr*) &sendSockAddr, sizeof(sendSockAddr));
     if(status < 0)
     {
-        cout<<"Error connecting to socket!"<<endl;
+        cout<<"Error connecting to socket"<<endl;
         // this line below was previously a break; line, but that caused an error
         exit(0);
     }
