@@ -1,3 +1,4 @@
+#include "server.hh"
 #include <iostream>
 #include <string>
 #include <stdio.h>
@@ -14,23 +15,33 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <fstream>
+#include <atomic>
+#include <thread>
+#include <tuple>
+#include <random>
+#include <deque>
+#include <functional>
+#include <mutex>
+#include <map>
+#include <set>
 using namespace std;
 //Server side
 
 #define TRUE   1 
 #define FALSE  0 
-#define PORT 4444 
+#define PORT 6000 
 
+// client_info* client_information;
 
 int main(int argc, char *argv[])
 {
-    //for the server, we only need to specify a port number
+    // for the server, we only need to specify a port number
     // if(argc != 1)
     // {
-    //     cerr << "Usage: port" << endl;
+    //     cerr << "Usage: " << endl;
     //     exit(0);
     // }
-    //grab the port number
+    // // grab the port number
     // int port = atoi(argv[1]);
     //buffer to send and receive messages with
     char msg[1500];
@@ -68,6 +79,8 @@ int main(int argc, char *argv[])
     //listen for up to 5 requests at a time
     listen(serverSd, 5);
 
+    // number of clients
+    // TODO: put this in the client_info struct
     int cnt = 0;
 
     while (1) {

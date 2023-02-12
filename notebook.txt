@@ -21,3 +21,29 @@ Feb 8, 2023
     - Implement ability to delete accounts.
     - Implement queueing messages for users that are not currently logged in.
     - Implement error for nonexistent users.
+
+
+Feb 11/12, 2023
+=============================================================================
+Progress:
+- defined a PORT macro in the server and client, so that we no longer need server and client to specify port number on command line
+- implemented forking so that multiple clients can talk to the server
+
+Bugs:
+- jank and unpredictable behavior with exiting out of the program — even after the client quits (with Ctrl+C or Exit), they're still "in the system" somehow
+    - this is bad handling of how to kill off child processes
+    - maybe this could help? https://stackoverflow.com/questions/6501522/how-to-kill-a-child-process-by-the-parent-process
+- sometimes, the server has trouble binding to a socket ("Error binding socket to local address" error message sometimes comes up) I've noticed this error message occasionally springing up as soon as we implemented 1) no longer needing server and client to specify port number on command line, but rather defining a PORT macro, and 2) forking each client/server connection into a new thread
+    - tbh idk which one of these contributes to the bug oops
+
+Missing features:
+- server cannot choose which client recipient to send message to, so it just cycles between each client when sending messages
+- we do not ask clients for their usernames
+- we do not track which clients (and usernames) are associated with which socket IDs
+
+Things I've tried:
+- I started work on tracking client info on server.hh (which defines a struct to store client info). We want to threads to read from and write to this struct safely, so we need a mutex and condition variable.
+
+TODOs:
+- resolve the bugs mentioned above
+- keep working on the client info implementation

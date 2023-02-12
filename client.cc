@@ -20,7 +20,7 @@ using namespace std;
 
 #define TRUE   1 
 #define FALSE  0 
-#define PORT 4444 
+#define PORT 6000 
 
 int main(int argc, char *argv[])
 {
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
         cout << ">";
         string data;
         getline(cin, data);
-        memset(&msg, 0, sizeof(msg));//clear the buffer
+        memset(&msg, 0, sizeof(msg)); //clear the buffer
         strcpy(msg, data.c_str());
         if(data == "exit")
         {
