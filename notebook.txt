@@ -34,6 +34,7 @@ Bugs:
 - the server cannot use the same port twice in the same session. In other words, it cannot hold a complete conversation with port 6000 and then use port 6000 again. 
     - if it does, we get a "Error binding socket to local address" error message, which prints out when the std::bind(serverSd, (struct sockaddr*) &servAddr, sizeof(servAddr)); function call status is < 0.
     - however, if we have the server run on port 6001, there is no bug, and we get the desired "Waiting for a client to connect..." Functionality
+    - maybe this could help? https://stackoverflow.com/questions/548879/releasing-bound-ports-on-process-exit
 - issues with the server closing off ports
     - when the server is down or operating on a different port (e.g. 6001) but the client tries to connect to a port that the server previously opened (e.g. 6000), trouble arises: the client gets "Connected to the server! \n >"
     - but the server cannot talk to the client
