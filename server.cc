@@ -66,6 +66,11 @@ int main(int argc, char *argv[])
     // open stream oriented socket with internet address
     // also keep track of the socket descriptor
     int serverSd = socket(AF_INET, SOCK_STREAM, 0);
+
+    // set SO_REUSEADDR to 1 to allow reuse of local addresses during bind()
+    int iSetOption = 1;
+    setsockopt(serverSd, SOL_SOCKET, SO_REUSEADDR, (char*)&iSetOption, sizeof(iSetOption));
+    
     if(serverSd < 0)
     {
         cerr << "Error establishing the server socket" << endl;
