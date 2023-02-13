@@ -15,13 +15,7 @@
 #include <fcntl.h>
 #include <fstream>
 using namespace std;
-
 //Client side
-
-#define TRUE   1 
-#define FALSE  0 
-// #define PORT 6000 
-
 int main(int argc, char *argv[])
 {
     //we need 2 things: ip address and port number, in that order
@@ -29,13 +23,11 @@ int main(int argc, char *argv[])
     {
         cerr << "Usage: ip_address port" << endl; exit(0); 
     } //grab the IP address and port number 
-    char *serverIp = argv[1]; 
-    int port = atoi(argv[2]); 
+    char *serverIp = argv[1]; int port = atoi(argv[2]); 
     //create a message buffer 
     char msg[1500]; 
     //setup a socket and connection tools 
     struct hostent* host = gethostbyname(serverIp); 
-    // server address
     sockaddr_in sendSockAddr;   
     bzero((char*)&sendSockAddr, sizeof(sendSockAddr)); 
     sendSockAddr.sin_family = AF_INET; 
@@ -48,8 +40,7 @@ int main(int argc, char *argv[])
                          (sockaddr*) &sendSockAddr, sizeof(sendSockAddr));
     if(status < 0)
     {
-        cout<<"Error connecting to socket"<<endl;
-        // this line below was previously a break; line, but that caused an error
+        cout<<"Error connecting to socket!"<<endl;
         exit(0);
     }
     cout << "Connected to the server!" << endl;
@@ -61,7 +52,7 @@ int main(int argc, char *argv[])
         cout << ">";
         string data;
         getline(cin, data);
-        memset(&msg, 0, sizeof(msg)); //clear the buffer
+        memset(&msg, 0, sizeof(msg));//clear the buffer
         strcpy(msg, data.c_str());
         if(data == "exit")
         {

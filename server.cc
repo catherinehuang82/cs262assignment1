@@ -29,20 +29,20 @@ using namespace std;
 
 #define TRUE   1 
 #define FALSE  0 
-#define PORT 6000 
+// #define PORT 6000 
 
 // client_info* client_information;
 
 int main(int argc, char *argv[])
 {
     // for the server, we only need to specify a port number
-    // if(argc != 1)
-    // {
-    //     cerr << "Usage: " << endl;
-    //     exit(0);
-    // }
-    // // grab the port number
-    // int port = atoi(argv[1]);
+    if(argc != 2)
+    {
+        cerr << "Usage: port" << endl;
+        exit(0);
+    }
+    // grab the port number
+    int port = atoi(argv[1]);
     //buffer to send and receive messages with
     char msg[1500];
      
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
     bzero((char*)&servAddr, sizeof(servAddr));
     servAddr.sin_family = AF_INET;
     servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servAddr.sin_port = htons(PORT);
+    servAddr.sin_port = htons(port);
 
     // client socket ID
     int newSd;

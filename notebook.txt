@@ -23,18 +23,24 @@ Feb 8, 2023
     - Implement error for nonexistent users.
 
 
-Feb 11/12, 2023
+Feb 11, 2023
 =============================================================================
 Progress:
-- defined a PORT macro in the server and client, so that we no longer need server and client to specify port number on command line
 - implemented forking so that multiple clients can talk to the server
+- tested three clients talking to the server at the same time
+- created original_client.cc and original_server.cc to "save" our baseline client/server implementations (without forking, only supports one client connected to the server at once)
 
 Bugs:
-- jank and unpredictable behavior with exiting out of the program — even after the client quits (with Ctrl+C or Exit), they're still "in the system" somehow
-    - this is bad handling of how to kill off child processes
-    - maybe this could help? https://stackoverflow.com/questions/6501522/how-to-kill-a-child-process-by-the-parent-process
-- sometimes, the server has trouble binding to a socket ("Error binding socket to local address" error message sometimes comes up) I've noticed this error message occasionally springing up as soon as we implemented 1) no longer needing server and client to specify port number on command line, but rather defining a PORT macro, and 2) forking each client/server connection into a new thread
-    - tbh idk which one of these contributes to the bug oops
+- the server cannot use the same port twice in the same session. In other words, it cannot hold a complete conversation with port 6000 and then use port 6000 again. 
+    - if it does, we get a "Error binding socket to local address" error message, which prints out when the std::bind(serverSd, (struct sockaddr*) &servAddr, sizeof(servAddr)); function call status is < 0.
+    - however, if we have the server run on port 6001, there is no bug, and we get the desired "Waiting for a client to connect..." Functionality
+- issues with the server closing off ports
+    - when the server is down or operating on a different port (e.g. 6001) but the client tries to connect to a port that the server previously opened (e.g. 6000), trouble arises: the client gets "Connected to the server! \n >"
+    - but the server cannot talk to the client
+    - the client has no choice but to ^C out of the program, but when it does that, the server enters into an infinite loop, where the message sent to the server is "Awaiting client response..."
+    - something like this: ">Awaiting client response..." "Client:" ">Awaiting client response..." "Client:" etc.
+    - so I'm thinking we need to properly close server ports when the server shuts down <- there is probably an issue here
+    - this could be tied to the bug above where the server somehow cannot use a port that it previously used but is now done using
 
 Missing features:
 - server cannot choose which client recipient to send message to, so it just cycles between each client when sending messages
@@ -47,3 +53,17 @@ Things I've tried:
 TODOs:
 - resolve the bugs mentioned above
 - keep working on the client info implementation
+
+Misc:
+- Karly's IP: 10.250.109.84
+- Catherine's IP: 10.250.69.72
+- Shell command to get your IP: ipconfig getifaddr en0
+
+Useful links:
+- "Client-Server chat in C++ using sockets": https://simpledevcode.wordpress.com/2016/06/16/client-server-chat-in-c-using-sockets/
+- "Design a concurrent server for handling multiple clients using fork()" GeeksForGeeks article: https://www.geeksforgeeks.org/design-a-concurrent-server-for-handling-multiple-clients-using-fork/
+- (probably useful down the line) "Handling multiple clients on server with multithreading using Socket Programming in C/C++": https://www.geeksforgeeks.org/handling-multiple-clients-on-server-with-multithreading-using-socket-programming-in-c-cpp/
+- (not yet used but could be relevant) "Socket Programming in C/C++: Handling multiple clients on server without multi threading": https://www.geeksforgeeks.org/socket-programming-in-cc-handling-multiple-clients-on-server-without-multi-threading/
+
+Feb 12, 2023
+=============================================================================
