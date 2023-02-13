@@ -23,7 +23,7 @@ Feb 8, 2023
     - Implement error for nonexistent users.
 
 
-Feb 11, 2023
+Feb 11/12, 2023
 =============================================================================
 Progress:
 - implemented forking so that multiple clients can talk to the server
@@ -65,5 +65,9 @@ Useful links:
 - (probably useful down the line) "Handling multiple clients on server with multithreading using Socket Programming in C/C++": https://www.geeksforgeeks.org/handling-multiple-clients-on-server-with-multithreading-using-socket-programming-in-c-cpp/
 - (not yet used but could be relevant) "Socket Programming in C/C++: Handling multiple clients on server without multi threading": https://www.geeksforgeeks.org/socket-programming-in-cc-handling-multiple-clients-on-server-without-multi-threading/
 
-Feb 12, 2023
+Feb 13, 2023
 =============================================================================
+Progress:
+- changed the server so that it still runs (and can accept future clients) even when all current clients have exited
+- properly updating the number of actively connected clients (i.e., decrementing client count when a client exits)
+- typing "exit" into the server does not necessarily shut down the server, though...but Ctrl+C handles this okay

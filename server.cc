@@ -43,10 +43,10 @@ int main(int argc, char *argv[])
     }
     // grab the port number
     int port = atoi(argv[1]);
-    //buffer to send and receive messages with
+    // buffer to send and receive messages with
     char msg[1500];
      
-    //setup a socket and connection tools
+    // setup a socket and connection tools
     sockaddr_in servAddr;
     bzero((char*)&servAddr, sizeof(servAddr));
     servAddr.sin_family = AF_INET;
@@ -56,18 +56,22 @@ int main(int argc, char *argv[])
     // client socket ID
     int newSd;
 
-    // Child process id
+     // we need a new address to connect with the client
+    sockaddr_in newSockAddr;
+    socklen_t newSockAddrSize = sizeof(newSockAddr);
+
+    // child process id (updated when we fork)
     pid_t childpid;
  
-    //open stream oriented socket with internet address
-    //also keep track of the socket descriptor
+    // open stream oriented socket with internet address
+    // also keep track of the socket descriptor
     int serverSd = socket(AF_INET, SOCK_STREAM, 0);
     if(serverSd < 0)
     {
         cerr << "Error establishing the server socket" << endl;
         exit(0);
     }
-    //bind the socket to its local address
+    // bind the socket to its local address
     int bindStatus = ::bind(serverSd, (struct sockaddr*) &servAddr, 
         sizeof(servAddr));
     if(bindStatus < 0)
@@ -84,36 +88,34 @@ int main(int argc, char *argv[])
     int cnt = 0;
 
     while (1) {
-        //receive a request from client using accept
-        //we need a new address to connect with the client
-        sockaddr_in newSockAddr;
-        socklen_t newSockAddrSize = sizeof(newSockAddr);
-        //accept, create a new socket descriptor to 
-        //handle the new connection with client
+        // receive a request from client using accept
+        // sockaddr_in newSockAddr;
+        // socklen_t newSockAddrSize = sizeof(newSockAddr);
+        // accept, create a new socket descriptor to 
+        // handle the new connection with client
         newSd = accept(serverSd, (sockaddr *)&newSockAddr, &newSockAddrSize);
         if(newSd < 0)
         {
             cerr << "Error accepting request from client!" << endl;
             exit(1);
         }
-        // Displaying information of
+        // display information of
         // connected client
         printf("Connection accepted from %s:%d\n",
                inet_ntoa(newSockAddr.sin_addr),
                ntohs(newSockAddr.sin_port));
 
-        // Print number of clients
-        // connected till now
+        // print number of clients connected up until now
         printf("Clients connected: %d\n\n",
                ++cnt);
 
+        // create a child process
         if ((childpid == fork()) == 0) {
 
-            close(serverSd);
-            // keep track of the session time
             // struct timeval start1, end1;
             // gettimeofday(&start1, NULL);
-            //also keep track of the amount of data sent as well
+
+            // keep track of the amount of data sent
             int bytesRead, bytesWritten = 0;
             while(1)
             {
@@ -124,6 +126,8 @@ int main(int argc, char *argv[])
                 if(!strcmp(msg, "exit"))
                 {
                     cout << "Client has quit the session" << endl;
+                    // decrement the number of clients currently connected to the server
+                    --cnt;
                     break;
                 }
                 cout << "Client: " << msg << endl;
@@ -136,12 +140,16 @@ int main(int argc, char *argv[])
                 {
                     //send to the client that server has closed the connection
                     send(newSd, (char*)&msg, strlen(msg), 0);
+                    // close the server socket id
+                    close(serverSd);
                     break;
                 }
-                //send the message to client
+                // send the message to client
+                // NOTE: I think this is where the sender can specify which client to send to 
+                // (the first argument is client socket ID)
                 bytesWritten += send(newSd, (char*)&msg, strlen(msg), 0);
             }
-            //we need to close the socket descriptors after we're all done
+            // we need to close the socket descriptors after we're all done
             // gettimeofday(&end1, NULL);
             // close(serverSd);
             cout << "********Session********" << endl;
@@ -151,6 +159,7 @@ int main(int argc, char *argv[])
             cout << "Connection closed..." << endl;
         }
     }
+    // close the client socket ID
     close(newSd);
     return 0;   
 }
