@@ -20,7 +20,7 @@
 #include <tuple>
 #include <thread>
 
-struct client_info {
+struct clientInfo {
     // mutex handles mutual exclusion of threads that read or write client information
     std::mutex m;
 
@@ -36,7 +36,24 @@ struct client_info {
     // NOTE: when an account gets deleted, its entry in this table should get deleted too
     // using the erase() method
     std::map<std::string, int> client_table;
-};
 
+    void addClient(string username, int socketId) {
+        client_table.insert({username, socketId});
+        accounts.insert(username);
+    }
+
+    void deleteClient(string username) {
+        client_table.erase(username);
+        accounts.erase(username);
+    }
+
+    int getSocketID(string username) {
+        return client_table.find(username);
+    }
+
+    set<string> listAccounts() {
+        return accounts;
+    }
+};
 
 #endif

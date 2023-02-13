@@ -1,6 +1,3 @@
-// baseline server without forking or thread-safe client information tracker
-// supports only one client connecting to the server
-
 #include <iostream>
 #include <string>
 #include <stdio.h>
@@ -17,10 +14,11 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <fstream>
+#include <server.hh>
 using namespace std;
-//Server side
-int main(int argc, char *argv[])
-{
+
+int main(int argc, char *argv[]) {
+
     //for the server, we only need to specify a port number
     if(argc != 2)
     {
@@ -31,7 +29,7 @@ int main(int argc, char *argv[])
     int port = atoi(argv[1]);
     //buffer to send and receive messages with
     char msg[1500];
-     
+
     //setup a socket and connection tools
     sockaddr_in servAddr;
     bzero((char*)&servAddr, sizeof(servAddr));
@@ -53,7 +51,7 @@ int main(int argc, char *argv[])
     {  
         client_socket[i] = 0;  
     }  
- 
+
     //open stream oriented socket with internet address
     //also keep track of the socket descriptor
     serverSd = socket(AF_INET, SOCK_STREAM, 0);
@@ -113,35 +111,31 @@ int main(int argc, char *argv[])
                 max_sd = sd;  
         }
 
-        //wait for an activity on one of the sockets , timeout is NULL , 
-        //so wait indefinitely 
-        // activity = select( max_sd + 1 , &clientfds , NULL , NULL , NULL);  
+        //wait for an activity on one of the sockets , timeout is NULL, so wait indefinitely 
+        activity = select( max_sd + 1 , &clientfds , NULL , NULL , NULL);  
        
-        // if ((activity < 0) && (errno!=EINTR))  
-        // {  
-        //     printf("select error");  
-        // } 
+        if ((activity < 0) && (errno!=EINTR))  
+        {  
+            printf("select error");  
+        } 
 
-        //If something happened on the master socket , 
-        //then its an incoming connection 
-        if (FD_ISSET(serverSd, &clientfds))
-        {
-            curr_clients++;
+        // create map of all users
+        client_map = new clientInfo();
 
+        if (FD_ISSET(serverSd, &clientfds)) {
+            // accept a new client
             if ((new_socket = accept(serverSd, 
-                    (sockaddr *)&newSockAddr, (socklen_t*)&newSockAddrSize))<0)  
-            {  
-                cerr << "Error accepting request from client!" << endl;
-                exit(EXIT_FAILURE);  
-            }
+                        (sockaddr *)&newSockAddr, (socklen_t*)&newSockAddrSize))<0)  
+                {  
+                    cerr << "Error accepting request from client!" << endl;
+                    exit(EXIT_FAILURE);  
+                }  
+            //TODO: ask for username, add to client map     
 
             //inform user of socket number - used in send and receive commands 
             printf("New connection , socket fd is %d , ip is : %s , port : %d\n" ,
             new_socket , inet_ntoa(newSockAddr.sin_addr) , ntohs
                   (newSockAddr.sin_port));  
-
-
-            // TODO: send a welcome message?
 
             //add new socket to array of sockets 
             for (i = 0; i < max_clients; i++)  
@@ -156,67 +150,10 @@ int main(int argc, char *argv[])
                 }  
             }
 
-            //also keep track of the amount of data sent as well
-            int bytesRead, bytesWritten = 0;
-            while(1) {
-                //receive a message from a client (listen)
-                cout << "Awaiting client response..." << endl;
-                
-                memset(&msg, 0, sizeof(msg));//clear the buffer
 
-                if (curr_clients == 0) {
-                    
-                }
 
-                for (i = 0; i < max_clients; i++) {
-                    
-                    if (client_socket[i] != 0) {
-                        bytesRead += recv(client_socket[i], (char*)&msg, sizeof(msg), 0);
-                        if(!strcmp(msg, "exit"))
-                        {
-                            printf("Client %d has quit the session\n", i);
-                            //Somebody disconnected , get his details and print 
-                            getpeername(sd, (sockaddr*)&newSockAddr , \
-                                (socklen_t*)&newSockAddr);  
-                            printf("Host disconnected , ip %s , port %d \n" , 
-                                inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
-                                
-                            //Close the socket and mark as 0 in list for reuse 
-                            close(sd);  
-                            client_socket[i] = 0; 
-                            curr_clients--;
-                            break;
-                        }
-                        printf("Client %d: %s\n", i, msg);
-                    }
-                }
-                cout << ">";
-                string data;
-                getline(cin, data);
-                memset(&msg, 0, sizeof(msg)); //clear the buffer
-                strcpy(msg, data.c_str());
-                for (i = 0; i < max_clients; i++) {
-                    if (client_socket[i] == 0) continue;
-                    
-                    if(data == "exit")
-                    {
-                        //send to the client that server has closed the connection
-                        send(client_socket[i], (char*)&msg, strlen(msg), 0);
-                        break;
-                    }
-                    //send the message to client
-                    bytesWritten += send(client_socket[i], (char*)&msg, strlen(msg), 0);
-                    // }
-                }
-            }
-
-        } 
-
-        cout << "********Session********" << endl;
-        // cout << "Bytes written: " << bytesWritten << " Bytes read: " << bytesRead << endl;
-        // cout << "Elapsed time: " << (end1.tv_sec - start1.tv_sec) 
-            // << " secs" << endl;
-        cout << "Connection closed..." << endl;     
+        }
+        
     }
-    return 0;   
+
 }
