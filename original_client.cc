@@ -1,3 +1,6 @@
+// baseline client without forking or thread-safe client information tracker
+// supports only one client connecting to the server
+
 #include <iostream>
 #include <string>
 #include <stdio.h>
