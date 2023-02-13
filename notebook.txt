@@ -66,7 +66,7 @@ Useful links:
 - (probably useful down the line) "Handling multiple clients on server with multithreading using Socket Programming in C/C++": https://www.geeksforgeeks.org/handling-multiple-clients-on-server-with-multithreading-using-socket-programming-in-c-cpp/
 - (not yet used but could be relevant) "Socket Programming in C/C++: Handling multiple clients on server without multi threading": https://www.geeksforgeeks.org/socket-programming-in-cc-handling-multiple-clients-on-server-without-multi-threading/
 
-Feb 13, 2023
+Feb 13, 2023 morning
 =============================================================================
 Progress:
 - changed the server so that it still runs (and can accept future clients) even when all current clients have exited
@@ -79,3 +79,16 @@ Progress:
 Bugs:
 - "Error binding socket to local address" for port 6000 (could be a firewall issue)
 - occasionally, we still get an "Error binding socket to local address" error when trying to reuse some ports (e.g. port 3005 raised this issue)
+
+Questions:
+- Could we possibly use the c++ select() linux command? This command allows us to monitor multiple file descriptors, waiting until one of the fd's become active. In our case, we can notify the client socket when server chooses to send a message to that particular client.
+    - The next best alternative to select() is to create a new thread for every new client connected to the server, but this is difficult to debug...
+- How do we reuse the same server port multiple times in the same session? setsockopt(serverSd, SOL_SOCKET, SO_REUSEADDR, ..., ...); doesn't always work
+
+
+
+Feb 13, 2023 afternoon
+=============================================================================
+Progress:
+- put the client/server fork implementation in server_fork.cc and client_fork.cc
+- started new implementation using c++ select() linux command in server.cc and client.cc

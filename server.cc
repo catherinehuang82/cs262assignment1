@@ -1,4 +1,6 @@
-#include "server.hh"
+// baseline server without forking or thread-safe client information tracker
+// supports only one client connecting to the server
+
 #include <iostream>
 #include <string>
 #include <stdio.h>
@@ -15,156 +17,198 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <fstream>
-#include <atomic>
-#include <thread>
-#include <tuple>
-#include <random>
-#include <deque>
-#include <functional>
-#include <mutex>
-#include <map>
-#include <set>
 using namespace std;
 //Server side
-
-#define TRUE   1 
-#define FALSE  0 
-// #define PORT 6000 
-
-// client_info* client_information;
-
 int main(int argc, char *argv[])
 {
-    // for the server, we only need to specify a port number
+    //for the server, we only need to specify a port number
     if(argc != 2)
     {
         cerr << "Usage: port" << endl;
         exit(0);
     }
-    // grab the port number
+    //grab the port number
     int port = atoi(argv[1]);
-    // buffer to send and receive messages with
+    //buffer to send and receive messages with
     char msg[1500];
      
-    // setup a socket and connection tools
+    //setup a socket and connection tools
     sockaddr_in servAddr;
     bzero((char*)&servAddr, sizeof(servAddr));
     servAddr.sin_family = AF_INET;
     servAddr.sin_addr.s_addr = htonl(INADDR_ANY);
     servAddr.sin_port = htons(port);
 
-    // client socket ID
-    int newSd;
+    // serverSd: master socket
+    int serverSd, addrlen, new_socket , client_socket[10] , 
+          max_clients = 10 , activity, i , valread , sd;
 
-     // we need a new address to connect with the client
-    sockaddr_in newSockAddr;
-    socklen_t newSockAddrSize = sizeof(newSockAddr);
-
-    // child process id (updated when we fork)
-    pid_t childpid;
- 
-    // open stream oriented socket with internet address
-    // also keep track of the socket descriptor
-    int serverSd = socket(AF_INET, SOCK_STREAM, 0);
-
-    // set SO_REUSEADDR to 1 to allow reuse of local addresses during bind()
-    int iSetOption = 1;
-    setsockopt(serverSd, SOL_SOCKET, SO_REUSEADDR, (char*)&iSetOption, sizeof(iSetOption));
+    int max_sd; 
     
+    //set of socket descriptors 
+    fd_set clientfds;
+
+    //initialise all client_socket[] to 0 so not checked 
+    for (i = 0; i < max_clients; i++)  
+    {  
+        client_socket[i] = 0;  
+    }  
+ 
+    //open stream oriented socket with internet address
+    //also keep track of the socket descriptor
+    serverSd = socket(AF_INET, SOCK_STREAM, 0);
     if(serverSd < 0)
     {
         cerr << "Error establishing the server socket" << endl;
         exit(0);
     }
-    // bind the socket to its local address
-    int bindStatus = ::bind(serverSd, (struct sockaddr*) &servAddr, 
+
+    //set master socket to allow multiple connections , 
+    //this is just a good habit, it will work without this 
+    int iSetOption = 1;
+    if( setsockopt(serverSd, SOL_SOCKET, SO_REUSEADDR, (char *)&iSetOption, 
+          sizeof(iSetOption)) < 0 )  
+    {  
+        perror("setsockopt");  
+        exit(EXIT_FAILURE);  
+    }
+
+    //bind the socket to its local address
+    int bindStatus = ::bind(serverSd, (sockaddr*) &servAddr, 
         sizeof(servAddr));
     if(bindStatus < 0)
     {
         cerr << "Error binding socket to local address" << endl;
         exit(0);
     }
-    cout << "Waiting for a client to connect..." << endl;
-    //listen for up to 5 requests at a time
-    listen(serverSd, 5);
 
-    // number of clients
-    // TODO: put this in the client_info struct
-    int cnt = 0;
+    printf("Waiting for a client to connect on port %d...\n", port);
+    
+    //listen for up to 10 requests at a time
+    listen(serverSd, 10);
+    //receive a request from client using accept
+    //we need a new address to connect with the client
+    sockaddr_in newSockAddr;
+    socklen_t newSockAddrSize = sizeof(newSockAddr);
 
     while (1) {
-        // receive a request from client using accept
-        // sockaddr_in newSockAddr;
-        // socklen_t newSockAddrSize = sizeof(newSockAddr);
-        // accept, create a new socket descriptor to 
-        // handle the new connection with client
-        newSd = accept(serverSd, (sockaddr *)&newSockAddr, &newSockAddrSize);
-        if(newSd < 0)
-        {
-            cerr << "Error accepting request from client!" << endl;
-            exit(1);
+        //clear the socket set 
+        FD_ZERO(&clientfds);  
+     
+        //add master socket to set 
+        FD_SET(serverSd, &clientfds);  
+        max_sd = serverSd;  
+
+        //add child sockets to set 
+        for ( i = 0 ; i < max_clients ; i++)  
+        {  
+            //socket descriptor 
+            sd = client_socket[i];  
+                 
+            //if valid socket descriptor then add to read list 
+            if(sd > 0)  
+                FD_SET( sd , &clientfds);  
+                 
+            //highest file descriptor number, need it for the select function 
+            if(sd > max_sd)  
+                max_sd = sd;  
         }
-        // display information of
-        // connected client
-        printf("Connection accepted from %s:%d\n",
-               inet_ntoa(newSockAddr.sin_addr),
-               ntohs(newSockAddr.sin_port));
 
-        // print number of clients connected up until now
-        printf("Clients connected: %d\n\n",
-               ++cnt);
+        //wait for an activity on one of the sockets , timeout is NULL , 
+        //so wait indefinitely 
+        activity = select( max_sd + 1 , &clientfds , NULL , NULL , NULL);  
+       
+        if ((activity < 0) && (errno!=EINTR))  
+        {  
+            printf("select error");  
+        } 
 
-        // create a child process
-        if ((childpid == fork()) == 0) {
+        //If something happened on the master socket , 
+        //then its an incoming connection 
+        if (FD_ISSET(serverSd, &clientfds))
+        {
+            if ((new_socket = accept(serverSd, 
+                    (sockaddr *)&newSockAddr, (socklen_t*)&newSockAddrSize))<0)  
+            {  
+                cerr << "Error accepting request from client!" << endl;
+                exit(EXIT_FAILURE);  
+            }
 
-            // struct timeval start1, end1;
-            // gettimeofday(&start1, NULL);
+            //inform user of socket number - used in send and receive commands 
+            printf("New connection , socket fd is %d , ip is : %s , port : %d\n" ,
+            new_socket , inet_ntoa(newSockAddr.sin_addr) , ntohs
+                  (newSockAddr.sin_port));  
 
-            // keep track of the amount of data sent
+
+            // TODO: send a welcome message?
+
+            //add new socket to array of sockets 
+            for (i = 0; i < max_clients; i++)  
+            {  
+                //if position is empty 
+                if( client_socket[i] == 0 )  
+                {  
+                    client_socket[i] = new_socket;  
+                    printf("Adding to list of sockets as %d\n" , i);  
+                         
+                    break;  
+                }  
+            }
+
+            //also keep track of the amount of data sent as well
             int bytesRead, bytesWritten = 0;
-            while(1)
-            {
-                //receive a message from the client (listen)
+            while(1) {
+                //receive a message from a client (listen)
                 cout << "Awaiting client response..." << endl;
                 memset(&msg, 0, sizeof(msg));//clear the buffer
-                bytesRead += recv(newSd, (char*)&msg, sizeof(msg), 0);
-                if(!strcmp(msg, "exit"))
-                {
-                    cout << "Client has quit the session" << endl;
-                    // decrement the number of clients currently connected to the server
-                    --cnt;
-                    break;
+                for (i = 0; i < max_clients; i++) {
+                    
+                    if (client_socket[i] != 0) {
+                        bytesRead += recv(client_socket[i], (char*)&msg, sizeof(msg), 0);
+                        if(!strcmp(msg, "exit"))
+                        {
+                            printf("Client %d has quit the session\n", i);
+                            //Somebody disconnected , get his details and print 
+                            getpeername(sd, (sockaddr*)&newSockAddr , \
+                                (socklen_t*)&newSockAddr);  
+                            printf("Host disconnected , ip %s , port %d \n" , 
+                                inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
+                                
+                            //Close the socket and mark as 0 in list for reuse 
+                            close(sd);  
+                            client_socket[i] = 0; 
+                            break;
+                        }
+                        printf("Client %d: %s\n", i, msg);
+                    }
                 }
-                cout << "Client: " << msg << endl;
                 cout << ">";
                 string data;
                 getline(cin, data);
                 memset(&msg, 0, sizeof(msg)); //clear the buffer
                 strcpy(msg, data.c_str());
-                if(data == "exit")
-                {
-                    //send to the client that server has closed the connection
-                    send(newSd, (char*)&msg, strlen(msg), 0);
-                    // close the server socket id
-                    close(serverSd);
-                    break;
+                for (i = 0; i < max_clients; i++) {
+                    if (client_socket[i] == 0) continue;
+                    
+                    if(data == "exit")
+                    {
+                        //send to the client that server has closed the connection
+                        send(client_socket[i], (char*)&msg, strlen(msg), 0);
+                        break;
+                    }
+                    //send the message to client
+                    bytesWritten += send(client_socket[i], (char*)&msg, strlen(msg), 0);
+                    // }
                 }
-                // send the message to client
-                // NOTE: I think this is where the sender can specify which client to send to 
-                // (the first argument is client socket ID)
-                bytesWritten += send(newSd, (char*)&msg, strlen(msg), 0);
             }
-            // we need to close the socket descriptors after we're all done
-            // gettimeofday(&end1, NULL);
-            // close(serverSd);
+
             cout << "********Session********" << endl;
             cout << "Bytes written: " << bytesWritten << " Bytes read: " << bytesRead << endl;
             // cout << "Elapsed time: " << (end1.tv_sec - start1.tv_sec) 
-            //     << " secs" << endl;
+                // << " secs" << endl;
             cout << "Connection closed..." << endl;
-        }
+
+        }      
     }
-    // close the client socket ID
-    close(newSd);
     return 0;   
 }

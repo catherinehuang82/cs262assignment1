@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "set": "cpp",
-        "condition_variable": "cpp"
+        "condition_variable": "cpp",
+        "memory": "cpp",
+        "iostream": "cpp"
     }
 }
