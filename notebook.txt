@@ -91,4 +91,4 @@ Feb 13, 2023 afternoon
 =============================================================================
 Progress:
 - put the client/server fork implementation in server_fork.cc and client_fork.cc
-- started new implementation using c++ select() linux command in server.cc and client.cc
+- started new implementation using c++ select() linux command in server.cc and client.cc, using https://www.geeksforgeeks.org/socket-programming-in-cc-handling-multiple-clients-on-server-without-multi-threading/
