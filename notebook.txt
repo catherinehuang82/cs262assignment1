@@ -102,3 +102,13 @@ Progress:
 Bugs:
 - two clients were able to connect, but the second client's message wasn't going anywhere (not to the server, nor to client 0)
 - I suspect it's a while loop issue, maybe get rid of line 161 on server2.cc? Either way, I'll look at https://www.geeksforgeeks.org/socket-programming-in-cc-handling-multiple-clients-on-server-without-multi-threading/ in more detail
+
+Feb 14, 2023 morning
+=============================================================================
+Progress:
+- server (server2.cc) now supports having each client talk to themselves
+- server no longer runs into an infinite loop after client quits, as long as client quits properly ("exit" rather than Ctrl+C)
+    - we can probably modify implementation so that the proper way for client to quit is Ctrl+C
+
+Next steps:
+- have client be able to specify which recipient (client) to send to, and have server correctly send message to the correct client

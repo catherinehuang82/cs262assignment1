@@ -158,46 +158,69 @@ int main(int argc, char *argv[]) {
         }
 
         int bytesRead, bytesWritten = 0;
-        while(1) {
+        // while(1) {
             //receive a message from a client (listen)
-            cout << "Awaiting client response..." << endl;
+            // cout << "Awaiting client response..." << endl;
             memset(&msg, 0, sizeof(msg));//clear the buffer
             for (i = 0; i < max_clients; i++) {
-                if (client_socket[i] != 0) {
-                    bytesRead += recv(client_socket[i], (char*)&msg, sizeof(msg), 0);
-                    if(!strcmp(msg, "exit"))
-                    {
-                        printf("Client %d has quit the session\n", i);
+
+                sd = client_socket[i];
+
+                if (FD_ISSET( sd , &clientfds))  {
+
+                    //Check if it was for closing , and also read the 
+                    //incoming message 
+                    bytesRead = recv(sd, (char*)&msg, sizeof(msg), 0);
+                    if (!strcmp(msg, "exit"))  
+                    {  
                         //Somebody disconnected , get his details and print 
-                        getpeername(sd, (sockaddr*)&newSockAddr , \
-                            (socklen_t*)&newSockAddr);  
-                        printf("Host disconnected , ip %s , port %d \n" , 
+                        getpeername(sd , (sockaddr*)&newSockAddr , \
+                            (socklen_t*)&newSockAddrSize);  
+                        printf("Client disconnected , ip %s , port %d \n" , 
                             inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
                             
                         //Close the socket and mark as 0 in list for reuse 
-                        close(sd);  
-                        client_socket[i] = 0; 
-                        break;
-                    }
-                    printf("Client %d: %s\n", i, msg);
-
-                    // server operations
-                    // if(msg == "exit")
+                        close( sd );  
+                        client_socket[i] = 0;  
+                    }  
+                    //Echo back the message that came in 
+                    else 
+                    {
+                        //set the string terminating NULL byte on the end 
+                        //of the data read 
+                        printf("we're here now\n");
+                        printf("Client %d: %s\n", i, msg);
+                        bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
+                        // msg[valread] = '\0';  
+                        // send(sd , msg , strlen(msg) , 0 );  
+                    }  
+                    // bytesRead = recv(client_socket[i], (char*)&msg, sizeof(msg), 0);
+                    // if(!strcmp(msg, "exit"))
                     // {
-                    //     //send to the client that server has closed the connection
-                    //     send(client_socket[i], (char*)&msg, strlen(msg), 0);
+                    //     printf("Client %d has quit the session\n", i);
+                    //     //Somebody disconnected , get his details and print 
+                    //     getpeername(sd, (sockaddr*)&newSockAddr , \
+                    //         (socklen_t*)&newSockAddr);  
+                    //     printf("Host disconnected , ip %s , port %d \n" , 
+                    //         inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
+                            
+                    //     //Close the socket and mark as 0 in list for reuse 
+                    //     close(sd);  
+                    //     client_socket[i] = 0; 
                     //     break;
                     // }
-                    //send the message to client
-                    bytesWritten += send(client_socket[0], (char*)&msg, strlen(msg), 0);
+                    // printf("Client %d: %s\n", i, msg);
+
+                    // //send the message to client
+                    // bytesWritten = send(client_socket[0], (char*)&msg, strlen(msg), 0);
                 }
             }
-        }
-        cout << "********Session********" << endl;
-        cout << "Bytes written: " << bytesWritten << " Bytes read: " << bytesRead << endl;
-        // cout << "Elapsed time: " << (end1.tv_sec - start1.tv_sec) 
-            // << " secs" << endl;
-        cout << "Connection closed..." << endl;
+        // }
+        // cout << "********Session********" << endl;
+        // cout << "Bytes written: " << bytesWritten << " Bytes read: " << bytesRead << endl;
+        // // cout << "Elapsed time: " << (end1.tv_sec - start1.tv_sec) 
+        //     // << " secs" << endl;
+        // cout << "Connection closed..." << endl;
 
     }
 
