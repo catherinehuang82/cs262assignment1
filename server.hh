@@ -37,23 +37,31 @@ struct clientInfo {
     // using the erase() method
     std::map<std::string, int> client_table;
 
-    void addClient(string username, int socketId) {
-        client_table.insert({username, socketId});
+    void addClient(std::string username, int socketId) {
+        // client_table.insert({username, socketId});
         accounts.insert(username);
     }
 
-    void deleteClient(string username) {
+    void deleteClient(std::string username) {
         client_table.erase(username);
         accounts.erase(username);
     }
 
-    int getSocketID(string username) {
-        return client_table.find(username);
-    }
+    // int getSocketID(std::string username) {
+    //     return client_table.find(username);
+    // }
 
-    set<string> listAccounts() {
+    std::set<std::string> listAccounts(std::string wildcard) {
+        // TODO: implement wildcard matching
         return accounts;
     }
+};
+
+struct socketMessage {
+    // message string
+    std::string data;
+    // recipient socket
+    int receipient_sd;
 };
 
 #endif

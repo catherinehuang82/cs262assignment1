@@ -14,7 +14,7 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <fstream>
-#include <server.hh>
+#include "server.hh"
 using namespace std;
 
 int main(int argc, char *argv[]) {
@@ -120,19 +120,25 @@ int main(int argc, char *argv[]) {
         } 
 
         // create map of all users
-        client_map = new clientInfo();
+        clientInfo* client_map;
 
         if (FD_ISSET(serverSd, &clientfds)) {
             // accept a new client
             if ((new_socket = accept(serverSd, 
                         (sockaddr *)&newSockAddr, (socklen_t*)&newSockAddrSize))<0)  
-                {  
-                    cerr << "Error accepting request from client!" << endl;
-                    exit(EXIT_FAILURE);  
-                }  
-            //TODO: ask for username, add to client map     
+            {  
+                cerr << "Error accepting request from client!" << endl;
+                exit(EXIT_FAILURE);  
+            }
 
-            //inform user of socket number - used in send and receive commands 
+            //ask for username, add to client map
+            // char* message = "Hi! Enter your username: ";
+            // if (send(new_socket, message, strlen(message), 0) != strlen(message) )  
+            // {  
+            //     perror("Did not properly send client the username requesting message");  
+            // } 
+
+            //inform server of socket number - used in send and receive commands 
             printf("New connection , socket fd is %d , ip is : %s , port : %d\n" ,
             new_socket , inet_ntoa(newSockAddr.sin_addr) , ntohs
                   (newSockAddr.sin_port));  
@@ -149,11 +155,50 @@ int main(int argc, char *argv[]) {
                     break;  
                 }  
             }
-
-
-
         }
-        
+
+        int bytesRead, bytesWritten = 0;
+        while(1) {
+            //receive a message from a client (listen)
+            cout << "Awaiting client response..." << endl;
+            memset(&msg, 0, sizeof(msg));//clear the buffer
+            for (i = 0; i < max_clients; i++) {
+                if (client_socket[i] != 0) {
+                    bytesRead += recv(client_socket[i], (char*)&msg, sizeof(msg), 0);
+                    if(!strcmp(msg, "exit"))
+                    {
+                        printf("Client %d has quit the session\n", i);
+                        //Somebody disconnected , get his details and print 
+                        getpeername(sd, (sockaddr*)&newSockAddr , \
+                            (socklen_t*)&newSockAddr);  
+                        printf("Host disconnected , ip %s , port %d \n" , 
+                            inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
+                            
+                        //Close the socket and mark as 0 in list for reuse 
+                        close(sd);  
+                        client_socket[i] = 0; 
+                        break;
+                    }
+                    printf("Client %d: %s\n", i, msg);
+
+                    // server operations
+                    // if(msg == "exit")
+                    // {
+                    //     //send to the client that server has closed the connection
+                    //     send(client_socket[i], (char*)&msg, strlen(msg), 0);
+                    //     break;
+                    // }
+                    //send the message to client
+                    bytesWritten += send(client_socket[0], (char*)&msg, strlen(msg), 0);
+                }
+            }
+        }
+        cout << "********Session********" << endl;
+        cout << "Bytes written: " << bytesWritten << " Bytes read: " << bytesRead << endl;
+        // cout << "Elapsed time: " << (end1.tv_sec - start1.tv_sec) 
+            // << " secs" << endl;
+        cout << "Connection closed..." << endl;
+
     }
 
 }

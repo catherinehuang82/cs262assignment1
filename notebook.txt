@@ -92,3 +92,13 @@ Feb 13, 2023 afternoon
 Progress:
 - put the client/server fork implementation in server_fork.cc and client_fork.cc
 - started new implementation using c++ select() linux command in server.cc and client.cc, using https://www.geeksforgeeks.org/socket-programming-in-cc-handling-multiple-clients-on-server-without-multi-threading/
+
+Feb 13, 2023 evening
+=============================================================================
+Progress:
+- we learned that in this client/server model, clients are supposed to send EACH OTHER messages. The server is just a middle man that relays client messages to their desired recipients. To that end, I adjusted implementation so that client 0 can send messages to itself without server intervention (i.e., it can talk to itself)
+    - I intended to write a program that has all messages (from all clients) sent to client 0
+
+Bugs:
+- two clients were able to connect, but the second client's message wasn't going anywhere (not to the server, nor to client 0)
+- I suspect it's a while loop issue, maybe get rid of line 161 on server2.cc? Either way, I'll look at https://www.geeksforgeeks.org/socket-programming-in-cc-handling-multiple-clients-on-server-without-multi-threading/ in more detail
