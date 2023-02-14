@@ -110,5 +110,7 @@ Progress:
 - server no longer runs into an infinite loop after client quits, as long as client quits properly ("exit" rather than Ctrl+C)
     - we can probably modify implementation so that the proper way for client to quit is Ctrl+C
 
+Helpful link about recv() vs. read(): https://stackoverflow.com/questions/1790750/what-is-the-difference-between-read-and-recv-and-between-send-and-write
+
 Next steps:
 - have client be able to specify which recipient (client) to send to, and have server correctly send message to the correct client
