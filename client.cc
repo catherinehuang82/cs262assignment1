@@ -14,6 +14,11 @@
 #include <sys/wait.h>
 #include <fcntl.h>
 #include <fstream>
+#include <atomic>
+#include <thread>
+#include <random>
+#include <deque>
+#include <mutex>
 using namespace std;
 
 //Client side
@@ -21,6 +26,22 @@ using namespace std;
 #define TRUE   1 
 #define FALSE  0 
 // #define PORT 6000 
+
+void listener_thread(int sd, int bytes_read) {
+    while(1) {
+        //create a message buffer for the message to be received
+        char msg_recv[1500]; 
+        // reading from server
+        memset(&msg_recv, 0, sizeof(msg_recv)); //clear the buffer
+        bytes_read += recv(sd, (char*)&msg_recv, sizeof(msg_recv), 0);
+        if(!strcmp(msg_recv, "exit")) {
+            cout << "Server has quit the session" << endl;
+            break;
+        } else {
+            cout << "Server: " << msg_recv << endl;
+        }
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -42,6 +63,9 @@ int main(int argc, char *argv[])
     sendSockAddr.sin_addr.s_addr = 
         inet_addr(inet_ntoa(*(struct in_addr*)*host->h_addr_list));
     sendSockAddr.sin_port = htons(port);
+    //set of socket descriptors 
+    // fd_set clientfd;
+
     int clientSd = socket(AF_INET, SOCK_STREAM, 0);
     //try to connect...
     int status = connect(clientSd,
@@ -53,13 +77,38 @@ int main(int argc, char *argv[])
         exit(0);
     }
     cout << "Connected to the server!" << endl;
+
+
     int bytesRead, bytesWritten = 0;
+    std::thread t(listener_thread, clientSd, bytesRead);
+    t.detach();
+
     struct timeval start1, end1;
     gettimeofday(&start1, NULL);
+
     while(1)
     {
+        //clear the socket set 
+        // FD_ZERO(&clientfd);  
+     
+        // //add master socket to set 
+        // FD_SET(clientSd, &clientfd);  
+        // int max_sd = clientSd;
+
+        // sending to the server
         cout << ">";
         string data;
+
+        //wait for an activity on one of the sockets , timeout is NULL, so wait indefinitely 
+        // activity = select( max_sd + 1 , &clientfd , NULL , NULL , NULL);  
+       
+        // if ((activity < 0) && (errno!=EINTR))  
+        // {  
+        //     printf("select error");  
+        // } 
+
+        // if (FD_ISSET(clientSd , &clientfd)) {
+        // sending to server
         getline(cin, data);
         memset(&msg, 0, sizeof(msg)); //clear the buffer
         strcpy(msg, data.c_str());
@@ -68,16 +117,10 @@ int main(int argc, char *argv[])
             send(clientSd, (char*)&msg, strlen(msg), 0);
             break;
         }
-        bytesWritten += send(clientSd, (char*)&msg, strlen(msg), 0);
-        cout << "Awaiting server response..." << endl;
-        memset(&msg, 0, sizeof(msg));//clear the buffer
-        bytesRead += recv(clientSd, (char*)&msg, sizeof(msg), 0);
-        if(!strcmp(msg, "exit"))
-        {
-            cout << "Server has quit the session" << endl;
-            break;
+        else {
+            bytesWritten = send(clientSd, (char*)&msg, strlen(msg), 0);
         }
-        cout << "Server: " << msg << endl;
+        // }
     }
     gettimeofday(&end1, NULL);
     // close(clientSd);
@@ -87,5 +130,6 @@ int main(int argc, char *argv[])
     cout << "Elapsed time: " << (end1.tv_sec- start1.tv_sec) 
       << " secs" << endl;
     cout << "Connection closed" << endl;
+    t.join();
     return 0;    
 }

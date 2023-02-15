@@ -172,11 +172,11 @@ int main(int argc, char *argv[]) {
                     //incoming message 
                     bytesRead = recv(sd, (char*)&msg, sizeof(msg), 0);
                     if (!strcmp(msg, "exit"))  
-                    {  
+                    {
                         //Somebody disconnected , get his details and print 
                         getpeername(sd , (sockaddr*)&newSockAddr , \
                             (socklen_t*)&newSockAddrSize);  
-                        printf("Client disconnected , ip %s , port %d \n" , 
+                        printf("Client %d disconnected , ip %s , port %d \n" , i, 
                             inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
                             
                         //Close the socket and mark as 0 in list for reuse 
@@ -188,9 +188,13 @@ int main(int argc, char *argv[]) {
                     {
                         //set the string terminating NULL byte on the end 
                         //of the data read 
-                        printf("we're here now\n");
+                        // printf("we're here now\n");
                         printf("Client %d: %s\n", i, msg);
-                        bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
+                        // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
+                        if (client_socket[1-i] != 0) {
+                            printf("here now\n");
+                            bytesWritten = send(client_socket[1-i], (char*)&msg, strlen(msg), 0);
+                        }
                         // msg[valread] = '\0';  
                         // send(sd , msg , strlen(msg) , 0 );  
                     }  
