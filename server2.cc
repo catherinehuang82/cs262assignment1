@@ -17,7 +17,8 @@
 #include "server.hh"
 using namespace std;
 
-clientInfo* client_information;
+clientInfo* client_info;
+std::unordered_map<std::string, int> client_table;
 
 int main(int argc, char *argv[]) {
 
@@ -119,11 +120,9 @@ int main(int argc, char *argv[]) {
         if ((activity < 0) && (errno!=EINTR))  
         {  
             printf("select error");  
-        } 
+        }
 
-        // create map of all users
-        clientInfo* client_map;
-
+        // listen for accepting a new client
         if (FD_ISSET(serverSd, &clientfds)) {
             // accept a new client
             if ((new_socket = accept(serverSd, 
@@ -133,17 +132,21 @@ int main(int argc, char *argv[]) {
                 exit(EXIT_FAILURE);  
             }
 
-            //ask for username, add to client map
-            // char* message = "Hi! Enter your username: ";
-            // if (send(new_socket, message, strlen(message), 0) != strlen(message) )  
-            // {  
-            //     perror("Did not properly send client the username requesting message");  
-            // } 
+
+            // TODO: implement asking the client for username
+            memset(&msg, 0, sizeof(msg));//clear the buffer
+            recv(new_socket, (char*)&msg, sizeof(msg), 0);
+
+            std::string new_client_username(msg);
+
+            // right now this line causes a segmentation fault
+            // client_info->addClient(new_client_username, new_socket);
+            client_table[new_client_username] = new_socket;
 
             //inform server of socket number - used in send and receive commands 
-            printf("New connection , socket fd is %d , ip is : %s , port : %d\n" ,
-            new_socket , inet_ntoa(newSockAddr.sin_addr) , ntohs
-                  (newSockAddr.sin_port));  
+            printf("New connection , socket fd is %d, username is %s, ip is: %s, port: %d\n",
+            new_socket, msg, inet_ntoa(newSockAddr.sin_addr), ntohs
+                  (newSockAddr.sin_port));
 
             //add new socket to array of sockets 
             for (i = 0; i < max_clients; i++)  
@@ -154,7 +157,7 @@ int main(int argc, char *argv[]) {
                     client_socket[i] = new_socket;  
                     printf("Adding to list of sockets as %d\n" , i);  
                          
-                    break;  
+                    break;
                 }  
             }
         }
@@ -198,7 +201,7 @@ int main(int argc, char *argv[]) {
                     }  else if (!strcmp(message.c_str(), "listaccounts")) {
                         // TODO: implement fetching the wildcard (maybe have the wildcard be the thing after the whitespace)
                         std::string wildcard = "";
-                        std::set<std::string> accounts_list = client_information->listAccounts(wildcard);
+                        std::set<std::string> accounts_list = client_info->listAccounts(wildcard);
                         std::string accounts_list_str;
                         for (std::string a : accounts_list)
                         {
@@ -219,11 +222,22 @@ int main(int argc, char *argv[]) {
                         //set the string terminating NULL byte on the end 
                         //of the data read 
                         // printf("we're here now\n");
+                        auto it = client_table.find(username);
+                        if ( it == client_table.end() ) {  
+                            // not found  
+                            string username_not_found_error = "Username does not exist, try sending to another user.";
+                            bytesWritten = send(
+                                client_socket[i],
+                                username_not_found_error.c_str(),
+                                strlen(username_not_found_error.c_str()), 0);
+                            continue; 
+                        }  
+                        int client_socket_fd = it->second;
                         printf("Client %d: %s\n", i, message.c_str());
                         // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
-                        if (client_socket[1-i] != 0) {
+                        if (client_socket_fd != 0) {
                             printf("here now\n");
-                            bytesWritten = send(client_socket[1-i], message.c_str(), strlen(message.c_str()), 0);
+                            bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
                         }
                         // msg[valread] = '\0';  
                         // send(sd , msg , strlen(msg) , 0 );  

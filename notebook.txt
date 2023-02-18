@@ -130,4 +130,21 @@ Bugs:
 
 Feb 18, 2023
 =============================================================================
-Progress: will update!
+Progress:
+- have clients send a 3-part message: operation, recipient username, and message (each one on a new line)
+    - the program properly prompts the client to do this
+    - operations: 1 is "send to a user," 2 is "list accounts," 3 is "delete account"
+- have server parse this operation + '\n' + username + '\n' + message string, and only send the message part over
+- implemented updating the client_table unordered map: std::unordered_map<std::string, int> 
+- implemented having client specify their own username on the command line, and server reading this and adding the username to client_table to 
+- implemented operation 1: having the server send the right messages to the right recipients (assuming the specified recipient client username exists)
+- implemented catching the error where the client wants to send to a recipient username that does not exist 
+
+Bugs:
+- hit quite a few bugs in this work session (mostly relating to infinite loops and how to avoid them)
+- forgot to track down each issue individually, but they mostly involved not breaking out of while loops or closing sockets properly
+
+TODOs:
+- handle account deletion, which is operation 3
+- implement accounts listing, which is operation 2 (including wildcard matching)
+- handle errors in client input (for example, if operations are not "1", "2", or "3")

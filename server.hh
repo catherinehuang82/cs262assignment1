@@ -17,6 +17,7 @@
 #include <deque>
 #include <set>
 #include <map>
+#include <unordered_map>
 #include <tuple>
 #include <thread>
 
@@ -24,21 +25,23 @@ struct clientInfo {
     // mutex handles mutual exclusion of threads that read or write client information
     std::mutex m;
 
+    // condition variable
+    std::condition_variable_any wakeup;
+
     // set of accounts, used for more efficient account listing
     std::set <std::string> accounts;
 
-    // condition variable
-    std::condition_variable_any wakeup;
 
     // key: client username
     // value: socket ID for the client process
     // NOTE: consider unordered maps
     // NOTE: when an account gets deleted, its entry in this table should get deleted too
     // using the erase() method
-    std::map<std::string, int> client_table;
+    std::unordered_map<std::string, int> client_table;
 
     void addClient(std::string username, int socketId) {
         // client_table.insert({username, socketId});
+        client_table[username] = socketId;
         accounts.insert(username);
     }
 

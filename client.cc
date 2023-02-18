@@ -36,11 +36,11 @@ void listener_thread(int sd, int bytes_read) {
         memset(&msg_recv, 0, sizeof(msg_recv)); //clear the buffer
         bytes_read += recv(sd, (char*)&msg_recv, sizeof(msg_recv), 0);
         if(!strcmp(msg_recv, "exit")) {
-            cout << "Server has quit the session" << endl;
+            printf("Server has quit the session.\n");
             break;
         } else {
             // TODO: make this a printf statement
-            cout << "Server: " << msg_recv << endl;
+            printf("\nServer: %s\n", msg_recv);
         }
     }
 }
@@ -48,12 +48,13 @@ void listener_thread(int sd, int bytes_read) {
 int main(int argc, char *argv[])
 {
     //we need 2 things: ip address and port number, in that order
-    if(argc != 3)
+    if(argc != 4)
     {
-        cerr << "Usage: ip_address port" << endl; exit(0); 
+        cerr << "Usage: ip_address port username" << endl; exit(0); 
     } //grab the IP address and port number 
     char *serverIp = argv[1]; 
     int port = atoi(argv[2]); 
+    char *username_self = argv[3];
     //create a message buffer 
     char msg[1500]; 
     //setup a socket and connection tools 
@@ -78,7 +79,15 @@ int main(int argc, char *argv[])
         // this line below was previously a break; line, but that caused an error
         exit(0);
     }
+
+    memset(&msg, 0, sizeof(msg)); //clear the buffer
+    strcpy(msg, username_self);
+
+    // send client username to server
+    int usernameBytes = send(clientSd, (char*)&msg, strlen(msg), 0);
+
     cout << "Connected to the server!" << endl;
+
 
 
     int bytesRead, bytesWritten = 0;
@@ -109,7 +118,7 @@ int main(int argc, char *argv[])
         // throw an error if operation is not 1-3
         // in the error, use continue; and not break;
 
-        printf("[Enter username] >");
+        printf("[Enter recipient username] >");
         string username;
         getline(cin, username);
     
