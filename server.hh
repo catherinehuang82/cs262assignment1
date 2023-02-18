@@ -59,9 +59,9 @@ struct clientInfo {
 
 struct socketMessage {
     // message string
-    std::string data;
+    std::string message;
     // recipient socket
-    int receipient_sd;
+    int recipient_username;
 };
 
 #endif

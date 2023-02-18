@@ -17,6 +17,8 @@
 #include "server.hh"
 using namespace std;
 
+clientInfo* client_information;
+
 int main(int argc, char *argv[]) {
 
     //for the server, we only need to specify a port number
@@ -167,11 +169,22 @@ int main(int argc, char *argv[]) {
                 sd = client_socket[i];
 
                 if (FD_ISSET( sd , &clientfds))  {
-
                     //Check if it was for closing , and also read the 
                     //incoming message 
                     bytesRead = recv(sd, (char*)&msg, sizeof(msg), 0);
-                    if (!strcmp(msg, "exit"))  
+                    string msg_string(msg);
+                    printf("msg string: %s\n", msg_string.c_str());
+                    // operation, username, message
+                    size_t pos2 = msg_string.find('\n', 2);
+                    printf("pos2: %zu\n", pos2);
+                    char operation = msg_string[0];
+                    string username = msg_string.substr(2, pos2 - 2);
+                    printf("username: %s\n", username.c_str());
+                    printf("username length: %lu\n", strlen(username.c_str()));
+                    string message = msg_string.substr(pos2 + 1, msg_string.length() - pos2);
+                    printf("message: %s\n", message.c_str());
+                    printf("message length: %lu\n", strlen(message.c_str()));
+                    if (!strcmp(message.c_str(), "exit"))  
                     {
                         //Somebody disconnected , get his details and print 
                         getpeername(sd , (sockaddr*)&newSockAddr , \
@@ -181,19 +194,36 @@ int main(int argc, char *argv[]) {
                             
                         //Close the socket and mark as 0 in list for reuse 
                         close( sd );  
-                        client_socket[i] = 0;  
-                    }  
-                    //Echo back the message that came in 
+                        client_socket[i] = 0;
+                    }  else if (!strcmp(message.c_str(), "listaccounts")) {
+                        // TODO: implement fetching the wildcard (maybe have the wildcard be the thing after the whitespace)
+                        std::string wildcard = "";
+                        std::set<std::string> accounts_list = client_information->listAccounts(wildcard);
+                        std::string accounts_list_str;
+                        for (std::string a : accounts_list)
+                        {
+                            accounts_list_str += a;
+                            accounts_list_str += '\n';
+                        }
+
+                        accounts_list_str.pop_back();
+                        printf("listing accounts...\n");
+
+                        // send accounts list to client that requested it
+                        bytesWritten = send(client_socket[i], (char*)&accounts_list_str,
+                        strlen((char*)&accounts_list_str), 0);
+                    }
+                    // send the message
                     else 
                     {
                         //set the string terminating NULL byte on the end 
                         //of the data read 
                         // printf("we're here now\n");
-                        printf("Client %d: %s\n", i, msg);
+                        printf("Client %d: %s\n", i, message.c_str());
                         // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
                         if (client_socket[1-i] != 0) {
                             printf("here now\n");
-                            bytesWritten = send(client_socket[1-i], (char*)&msg, strlen(msg), 0);
+                            bytesWritten = send(client_socket[1-i], message.c_str(), strlen(message.c_str()), 0);
                         }
                         // msg[valread] = '\0';  
                         // send(sd , msg , strlen(msg) , 0 );  

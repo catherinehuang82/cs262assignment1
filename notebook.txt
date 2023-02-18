@@ -112,5 +112,22 @@ Progress:
 
 Helpful link about recv() vs. read(): https://stackoverflow.com/questions/1790750/what-is-the-difference-between-read-and-recv-and-between-send-and-write
 
+Bugs:
+- client currently can't receive any incoming messages until after they send their current message
+
 Next steps:
 - have client be able to specify which recipient (client) to send to, and have server correctly send message to the correct client
+- have client be able to receive (by listening for) incoming messages at any moment
+
+Feb 15, 2023
+=============================================================================
+Progress:
+- realized that clients cannot listen for new messages at the same time as sending existing messages , and that threading will fix this issue
+- implemented threading, where one client process listens to messages from the server, and another process handles sending messages to the server
+
+Bugs:
+- only implemented message sending for client 0 -> client 1 and vice versa. We need to be able to have each client specify who to send each message to
+
+Feb 18, 2023
+=============================================================================
+Progress: will update!

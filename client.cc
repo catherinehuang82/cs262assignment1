@@ -1,3 +1,4 @@
+#include "server.hh"
 #include <iostream>
 #include <string>
 #include <stdio.h>
@@ -38,6 +39,7 @@ void listener_thread(int sd, int bytes_read) {
             cout << "Server has quit the session" << endl;
             break;
         } else {
+            // TODO: make this a printf statement
             cout << "Server: " << msg_recv << endl;
         }
     }
@@ -96,8 +98,26 @@ int main(int argc, char *argv[])
         // int max_sd = clientSd;
 
         // sending to the server
-        cout << ">";
+
+        printf("[Enter operation] >");
+        string operation;
+        getline(cin, operation);
+        // TODO: handle operation
+        // 1: send to a user
+        // 2: list accounts
+        // 3: delete account
+        // throw an error if operation is not 1-3
+        // in the error, use continue; and not break;
+
+        printf("[Enter username] >");
+        string username;
+        getline(cin, username);
+    
+        // TODO: handle bad username
+
+        printf("[Enter message] >");
         string data;
+        getline(cin, data);
 
         //wait for an activity on one of the sockets , timeout is NULL, so wait indefinitely 
         // activity = select( max_sd + 1 , &clientfd , NULL , NULL , NULL);  
@@ -109,17 +129,19 @@ int main(int argc, char *argv[])
 
         // if (FD_ISSET(clientSd , &clientfd)) {
         // sending to server
-        getline(cin, data);
+        // socketMessage* socket_message;
+        // socket_message->recipient_username = username;
+        // socket_message->message = data;
+        string msg_str = operation + '\n' + username + '\n' + data;
+        
         memset(&msg, 0, sizeof(msg)); //clear the buffer
-        strcpy(msg, data.c_str());
+        strcpy(msg, msg_str.c_str());
         if(data == "exit")
         {
             send(clientSd, (char*)&msg, strlen(msg), 0);
             break;
         }
-        else {
-            bytesWritten = send(clientSd, (char*)&msg, strlen(msg), 0);
-        }
+        bytesWritten = send(clientSd, (char*)&msg, strlen(msg), 0);
         // }
     }
     gettimeofday(&end1, NULL);
