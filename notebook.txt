@@ -149,7 +149,7 @@ TODOs:
 - implement accounts listing, which is operation 2 (including wildcard matching)
 - handle errors in client input (for example, if operations are not "1", "2", or "3")
 
-Feb 19, 2023
+Feb 18, 2023 evening
 ===============================================================================
 Progress:
 - implemented listing usernames by wildcard matching
@@ -165,3 +165,15 @@ TODOs:
 - upon login: check if same username is active in another process and terminate that other process
     - one way this might work is to call std::terminate() inside the client listener thread
 - handle the server going down (e.g., Ctrl+C) situation gracefully (right now the client prints out "Server:\n" in an infinite loop)
+
+Feb 19, 2023 afternoon
+===============================================================================
+Progress:
+- implemented detection (in the server) of who sent each particular message
+- implemented sending of any undelivered/queued messages to user (if they have logged in previously)
+
+TODOs:
+- tell each client who sent the message (this is just a quick implementation in the server)
+- TEST the sending of any undelivered/queued messages to user (if they have logged in previously)
+- implement account deletion
+- implement logging out an existing login (if the same user logs in twice on two different terminals)
