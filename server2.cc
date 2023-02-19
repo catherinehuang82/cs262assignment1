@@ -181,13 +181,8 @@ int main(int argc, char *argv[]) {
                     size_t pos2 = msg_string.find('\n', 2);
                     printf("pos2: %zu\n", pos2);
                     char operation = msg_string[0];
-                    string username = msg_string.substr(2, pos2 - 2);
-                    printf("username: %s\n", username.c_str());
-                    printf("username length: %lu\n", strlen(username.c_str()));
-                    string message = msg_string.substr(pos2 + 1, msg_string.length() - pos2);
-                    printf("message: %s\n", message.c_str());
-                    printf("message length: %lu\n", strlen(message.c_str()));
-                    if (!strcmp(message.c_str(), "exit"))  
+
+                    if (operation == '4')
                     {
                         //Somebody disconnected , get his details and print 
                         getpeername(sd , (sockaddr*)&newSockAddr , \
@@ -198,7 +193,27 @@ int main(int argc, char *argv[]) {
                         //Close the socket and mark as 0 in list for reuse 
                         close( sd );  
                         client_socket[i] = 0;
-                    }  else if (!strcmp(message.c_str(), "listaccounts")) {
+                    }
+
+                    string username = msg_string.substr(2, pos2 - 2);
+                    printf("username: %s\n", username.c_str());
+                    printf("username length: %lu\n", strlen(username.c_str()));
+                    string message = msg_string.substr(pos2 + 1, msg_string.length() - pos2);
+                    printf("message: %s\n", message.c_str());
+                    printf("message length: %lu\n", strlen(message.c_str()));
+                    // if (!strcmp(message.c_str(), "exit"))  
+                    // {
+                    //     //Somebody disconnected , get his details and print 
+                    //     getpeername(sd , (sockaddr*)&newSockAddr , \
+                    //         (socklen_t*)&newSockAddrSize);  
+                    //     printf("Client %d disconnected , ip %s , port %d \n" , i, 
+                    //         inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
+                            
+                    //     //Close the socket and mark as 0 in list for reuse 
+                    //     close( sd );  
+                    //     client_socket[i] = 0;
+                    // }
+                    if (operation == '2') {
                         // TODO: implement fetching the wildcard (maybe have the wildcard be the thing after the whitespace)
                         std::string wildcard = "";
                         std::set<std::string> accounts_list = client_info->listAccounts(wildcard);
@@ -217,8 +232,7 @@ int main(int argc, char *argv[]) {
                         strlen((char*)&accounts_list_str), 0);
                     }
                     // send the message
-                    else 
-                    {
+                    else if (operation == '1') {
                         //set the string terminating NULL byte on the end 
                         //of the data read 
                         // printf("we're here now\n");

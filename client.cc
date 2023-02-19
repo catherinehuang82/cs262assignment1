@@ -115,16 +115,46 @@ int main(int argc, char *argv[])
         // 1: send to a user
         // 2: list accounts
         // 3: delete account
+        // 4: log out
         // throw an error if operation is not 1-3
         // in the error, use continue; and not break;
+        if (strcmp(operation.c_str(), "1")
+        && strcmp(operation.c_str(), "2")
+        && strcmp(operation.c_str(), "3")
+        && strcmp(operation.c_str(), "4")
+        ) {
+            string bad_operation_error = "Please enter 1 (send a message to a use), 2 (list accounts), or 3 (delete account).";
+            printf("%s\n", bad_operation_error.c_str());
+            continue;
+        }
 
-        printf("[Enter recipient username] >");
-        string username;
-        getline(cin, username);
+        // handle operation 4: logging out
+        if (!strcmp(operation.c_str(), "4")) {
+            memset(&msg, 0, sizeof(msg)); //clear the buffer
+            strcpy(msg, "4");
+            send(clientSd, (char*)&msg, strlen(msg), 0);
+            printf("Logging you out. Goodbye!\n");
+            break;
+        }
+
+        string username = "";
+
+        if (!strcmp(operation.c_str(), "1")) {
+            printf("[Enter recipient username] >");
+            getline(cin, username);
+        }
     
         // TODO: handle bad username
 
-        printf("[Enter message] >");
+        if (!strcmp(operation.c_str(), "2")) {
+            printf("[Enter account matching wildcard] >");
+        } else if (!strcmp(operation.c_str(), "1")) {
+            printf("[Enter message] >");
+        } else {
+            printf("Press enter to confirm deletion of your account.\n");
+        }
+        // either the message string (operation 1)
+        // or the text wildcard with which we match accounts (operation 2)
         string data;
         getline(cin, data);
 
@@ -145,11 +175,11 @@ int main(int argc, char *argv[])
         
         memset(&msg, 0, sizeof(msg)); //clear the buffer
         strcpy(msg, msg_str.c_str());
-        if(data == "exit")
-        {
-            send(clientSd, (char*)&msg, strlen(msg), 0);
-            break;
-        }
+        // if(data == "exit")
+        // {
+        //     send(clientSd, (char*)&msg, strlen(msg), 0);
+        //     break;
+        // }
         bytesWritten = send(clientSd, (char*)&msg, strlen(msg), 0);
         // }
     }
