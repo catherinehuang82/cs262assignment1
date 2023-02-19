@@ -254,7 +254,7 @@ int main(int argc, char *argv[]) {
                         auto active_it = active_users.find(username);
                         auto logged_out_it = logged_out_users.find(username);
 
-                        if (it == active_users.end() && logged_out_it == logged_out_users.end()) {  
+                        if (active_it == active_users.end() && logged_out_it == logged_out_users.end()) {  
                             // not found  
                             string username_not_found_error = "Username does not exist, try sending to another user.";
                             bytesWritten = send(
@@ -269,7 +269,7 @@ int main(int argc, char *argv[]) {
                             std::string sender = "";
                             logged_out_users[username] = logged_out_users[username] + sender + ": " + message + "\n";
                         } else {
-                            int client_socket_fd = it->second;
+                            int client_socket_fd = active_it->second;
                             printf("Client %d: %s\n", i, message.c_str());
                             // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
                             if (client_socket_fd != 0) {
@@ -309,5 +309,4 @@ int main(int argc, char *argv[]) {
         // cout << "Connection closed..." << endl;
 
     }
-
 }

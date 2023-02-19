@@ -30,11 +30,15 @@ using namespace std;
 
 void listener_thread(int sd, int bytes_read) {
     while(1) {
-        //create a message buffer for the message to be received
+        // create a message buffer for the message to be received
         char msg_recv[1500]; 
         // reading from server
-        memset(&msg_recv, 0, sizeof(msg_recv)); //clear the buffer
+        memset(&msg_recv, 0, sizeof(msg_recv)); // clear the buffer
         bytes_read += recv(sd, (char*)&msg_recv, sizeof(msg_recv), 0);
+        // TODO: handle the case where a user is logged out
+        // because another process logged in as the same username
+        // consider std::terminate() to terminate all threads
+        // maybe also print out an "automatically logged out due to same login from another process." message
         if(!strcmp(msg_recv, "exit")) {
             printf("Server has quit the session.\n");
             break;
@@ -92,7 +96,6 @@ int main(int argc, char *argv[])
 
     int bytesRead, bytesWritten = 0;
     std::thread t(listener_thread, clientSd, bytesRead);
-    t.detach();
 
     struct timeval start1, end1;
     gettimeofday(&start1, NULL);
@@ -191,6 +194,6 @@ int main(int argc, char *argv[])
     cout << "Elapsed time: " << (end1.tv_sec- start1.tv_sec) 
       << " secs" << endl;
     cout << "Connection closed" << endl;
-    t.join();
+    t.detach();
     return 0;    
 }

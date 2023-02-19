@@ -157,7 +157,11 @@ Progress:
 - implemented saving messages for logged out users
 
 TODOs:
+- implement detection (in the server) of who sent each particular message
 - upon client login, differentiate between new user and login of existing user
-  (can check client list), if login then need to deliver any messages during its
+  (can check client list)
+    - if existing login then need to deliver any messages during its
   time logged off
-- upon login:check if same username active and terminate the other one
+- upon login: check if same username is active in another process and terminate that other process
+    - one way this might work is to call std::terminate() inside the client listener thread
+- handle the server going down (e.g., Ctrl+C) situation gracefully (right now the client prints out "Server:\n" in an infinite loop)
