@@ -18,7 +18,8 @@
 using namespace std;
 
 clientInfo* client_info;
-std::unordered_map<std::string, int> client_table;
+std::unordered_map<std::string, int> active_users; // username : id
+std::unordered_map<std::string, std::string> logged_out_users; // username : undelivered messages
 
 int main(int argc, char *argv[]) {
 
@@ -141,7 +142,7 @@ int main(int argc, char *argv[]) {
 
             // right now this line causes a segmentation fault
             // client_info->addClient(new_client_username, new_socket);
-            client_table[new_client_username] = new_socket;
+            active_users[new_client_username] = new_socket;
 
             //inform server of socket number - used in send and receive commands 
             printf("New connection , socket fd is %d, username is %s, ip is: %s, port: %d\n",
@@ -193,6 +194,7 @@ int main(int argc, char *argv[]) {
                         //Close the socket and mark as 0 in list for reuse 
                         close( sd );  
                         client_socket[i] = 0;
+                        continue;
                     }
 
                     string username = msg_string.substr(2, pos2 - 2);
@@ -215,29 +217,44 @@ int main(int argc, char *argv[]) {
                     // }
                     if (operation == '2') {
                         // TODO: implement fetching the wildcard (maybe have the wildcard be the thing after the whitespace)
-                        std::string wildcard = "";
-                        std::set<std::string> accounts_list = client_info->listAccounts(wildcard);
-                        std::string accounts_list_str;
-                        for (std::string a : accounts_list)
-                        {
-                            accounts_list_str += a;
-                            accounts_list_str += '\n';
+                        std::string wildcard = message;
+                        
+                        // fetch all usernames into a set
+                        std::set<std::string> account_set;
+                        for(auto i:active_users) {
+                            account_set.insert(i.first);
+                        }
+                        for(auto i:logged_out_users) {
+                            account_set.insert(i.first);
                         }
 
-                        accounts_list_str.pop_back();
+                        // string with all matching accounts 
+                        std::string matching_accounts;
+                        for (std::string a : account_set)
+                        {
+                            // if a username contains wildcard, add to string
+                            if (a.find(wildcard) != std::string::npos) {
+                                matching_accounts += a;
+                                matching_accounts += '\n';
+                            }
+                        }
+
+                        // accounts_list_str.pop_back();
                         printf("listing accounts...\n");
 
                         // send accounts list to client that requested it
-                        bytesWritten = send(client_socket[i], (char*)&accounts_list_str,
-                        strlen((char*)&accounts_list_str), 0);
+                        bytesWritten = send(client_socket[i], (char*)&matching_accounts,
+                            strlen((char*)&matching_accounts), 0);
                     }
                     // send the message
                     else if (operation == '1') {
                         //set the string terminating NULL byte on the end 
                         //of the data read 
                         // printf("we're here now\n");
-                        auto it = client_table.find(username);
-                        if ( it == client_table.end() ) {  
+                        auto active_it = active_users.find(username);
+                        auto logged_out_it = logged_out_users.find(username);
+
+                        if (it == active_users.end() && logged_out_it == logged_out_users.end()) {  
                             // not found  
                             string username_not_found_error = "Username does not exist, try sending to another user.";
                             bytesWritten = send(
@@ -246,12 +263,19 @@ int main(int argc, char *argv[]) {
                                 strlen(username_not_found_error.c_str()), 0);
                             continue; 
                         }  
-                        int client_socket_fd = it->second;
-                        printf("Client %d: %s\n", i, message.c_str());
-                        // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
-                        if (client_socket_fd != 0) {
-                            printf("here now\n");
-                            bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
+
+                        if (logged_out_it != logged_out_users.end()) {
+                            // user is logged out, save message for them
+                            std::string sender = "";
+                            logged_out_users[username] = logged_out_users[username] + sender + ": " + message + "\n";
+                        } else {
+                            int client_socket_fd = it->second;
+                            printf("Client %d: %s\n", i, message.c_str());
+                            // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
+                            if (client_socket_fd != 0) {
+                                printf("here now\n");
+                                bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
+                            }
                         }
                         // msg[valread] = '\0';  
                         // send(sd , msg , strlen(msg) , 0 );  

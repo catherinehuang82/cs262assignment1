@@ -148,3 +148,16 @@ TODOs:
 - handle account deletion, which is operation 3
 - implement accounts listing, which is operation 2 (including wildcard matching)
 - handle errors in client input (for example, if operations are not "1", "2", or "3")
+
+Feb 19, 2023
+===============================================================================
+Progress:
+- implemented listing usernames by wildcard matching
+- added table for logged out users
+- implemented saving messages for logged out users
+
+TODOs:
+- upon client login, differentiate between new user and login of existing user
+  (can check client list), if login then need to deliver any messages during its
+  time logged off
+- upon login:check if same username active and terminate the other one
