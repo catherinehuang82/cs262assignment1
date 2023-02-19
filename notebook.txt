@@ -171,9 +171,10 @@ Feb 19, 2023 afternoon
 Progress:
 - implemented detection (in the server) of who sent each particular message
 - implemented sending of any undelivered/queued messages to user (if they have logged in previously)
+- implemented telling each client who sent each message to it
+- tested out the sending of any undelivered/queued messages to user (if they have logged in previously)
+- implemented account deletion
 
 TODOs:
-- tell each client who sent the message (this is just a quick implementation in the server)
-- TEST the sending of any undelivered/queued messages to user (if they have logged in previously)
-- implement account deletion
 - implement logging out an existing login (if the same user logs in twice on two different terminals)
+- grpc ;-;

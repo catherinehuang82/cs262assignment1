@@ -44,7 +44,7 @@ void listener_thread(int sd, int bytes_read) {
             break;
         } else {
             // TODO: make this a printf statement
-            printf("\nServer: %s\n", msg_recv);
+            printf("\n%s\n", msg_recv);
         }
     }
 }

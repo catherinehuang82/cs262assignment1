@@ -157,7 +157,6 @@ int main(int argc, char *argv[]) {
                 send(new_socket, undelivered_messages.c_str(), strlen(undelivered_messages.c_str()), 0);
             }
 
-
             //inform server of socket number - used in send and receive commands 
             printf("New connection , socket fd is %d, username is %s, ip is: %s, port: %d\n",
             new_socket, msg, inet_ntoa(newSockAddr.sin_addr), ntohs
@@ -224,14 +223,16 @@ int main(int argc, char *argv[]) {
                     // handle logging out the user by deleting from active senders map
                     active_users.erase(sender_username);
 
+                    logged_out_users[sender_username] = "Messages you missed when you were gone:\n";
                     continue;
                 }
 
                 if (operation == '3') {
-
                     // TODO: implement account deletion
                     // this means deleting the entry from the active_users mapping
                     // AND deleting the username from the account_set set
+                    active_users.erase(sender_username);
+                    account_set.erase(sender_username);
                     continue;
                 }
 
@@ -288,11 +289,10 @@ int main(int argc, char *argv[]) {
                 else if (operation == '1') {
                     //set the string terminating NULL byte on the end 
                     //of the data read 
-                    // printf("we're here now\n");
                     auto active_it = active_users.find(username);
                     auto logged_out_it = logged_out_users.find(username);
 
-                    // if username 
+                    // if username is not found at all (regardless of whether the user is logged in or not)
                     // TODO: change this to just iterating through the account_set set of usernames
                     if (active_it == active_users.end() && logged_out_it == logged_out_users.end()) {  
                         // not found  
@@ -306,16 +306,16 @@ int main(int argc, char *argv[]) {
 
                     if (logged_out_it != logged_out_users.end()) {
                         // user is logged out, save message for them
-                        std::string sender = "";
-                        logged_out_users[username] = logged_out_users[username] + sender + ": " + message + "\n";
-                    } 
-                    // user is not logged out, so just send right now
+                        logged_out_users[username] = logged_out_users[username] + sender_username + ": " + message + "\n";
+                    }
                     else {
+                        // user is logged in, so just send right now
                         int client_socket_fd = active_it->second;
+                        message = sender_username + ": " + message;
                         printf("Client: %d, username: %s, message: %s\n", i, sender_username.c_str(), message.c_str());
                         // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
                         if (client_socket_fd != 0) {
-                            printf("here now\n");
+                            printf("sending message to recipient...\n");
                             bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
                         }
                     }
