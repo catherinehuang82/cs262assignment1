@@ -192,3 +192,67 @@ TODOs:
 - implement logging out an existing login (if the same user logs in twice on two different terminals)
 - handle the server going down (e.g., Ctrl+C) situation gracefully (right now the client prints out "Server:\n" in an infinite loop)
     - this might involve the need to read SIGINT signals: https://www.tutorialspoint.com/how-do-i-catch-a-ctrlplusc-event-in-cplusplus
+    
+Feb 19, 2023 late evening (2)
+===============================================================================
+Progress:
+- followed a gRPC tutorial on how to build and locally install gRPC and Protocol Buffers
+- ran into issues compiling protobufs with cmake (and make)
+- tried using bazel and BUILD and WORKSPACE files, but ran into issues there too
+
+relevant commands:
+$ export MY_INSTALL_DIR=$HOME/.local
+$ mkdir -p $MY_INSTALL_DIR
+$ export PATH="$MY_INSTALL_DIR/bin:$PATH"
+$ brew install cmake
+$ cmake --version
+$ brew install autoconf automake libtool pkg-config
+$ mkdir -p cmake/build
+$ pushd cmake/build
+$ cmake -DgRPC_INSTALL=ON \
+      -DgRPC_BUILD_TESTS=OFF \
+      -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR \
+      ../..
+$ make -j 4
+$ make install
+$ popd
+
+Bugs:
+- cmake issue compiling protobuf: the grpc_cpp_plugin was not recognized as executable 
+    - something like this: https://github.com/faaxm/exmpl-cmake-grpc/issues/1
+- bazel issue: in blacklisted_protos attribute of proto_lang_toolchain rule @com_google_protobuf//:cc_toolchain: '@com_google_protobuf//:well_known_protos' does not have mandatory providers: 'ProtoInfo'. Since this rule was created by the macro 'proto_lang_toolchain', the error might have been caused by the macro implementation
+
+Feb 20, 2023 at like 5am
+===============================================================================
+Progress:
+- got gRPC client and server running! although none of it is implemented yet (besides an "#include "chat.grpc.pb.h" and a main function that prints hello world)
+- for the user: follow this tutorial (https://grpc.io/docs/languages/cpp/quickstart/#install-grpc)
+series of terminal commands to do (from the base directory in the repository, which is grpc_chat in our case):
+    $ export MY_INSTALL_DIR=$HOME/.local
+    $ mkdir -p $MY_INSTALL_DIR
+    $ export PATH="$MY_INSTALL_DIR/bin:$PATH"
+    $ brew install cmake (mac)
+            $ sudo apt install -y cmake (linux)
+    $ cmake --version
+    $ brew install autoconf automake libtool pkg-config
+    $ mkdir -p cmake/build
+    $ pushd cmake/build
+    $ cmake -DgRPC_INSTALL=ON \
+      -DgRPC_BUILD_TESTS=OFF \
+      -DCMAKE_INSTALL_PREFIX=$MY_INSTALL_DIR \
+      ../..
+    $ make -j 4 
+            (or change to a bigger number if you want to run with more jobs in parallel)
+    $ make install
+to run the client and server (note that you should currently be in the build (i.e., repo/cmake/build/ directory):
+    $ src/chat_client
+    $ src/server
+
+Feb 20, 2023 at like 9am
+===============================================================================
+Progress:
+- implemented gRPC client (but haven't tested)
+- updated chat.proto design
+
+Todo:
+- implemented gRPC server and test
