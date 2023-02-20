@@ -193,9 +193,7 @@ int main(int argc, char *argv[]) {
                 bytesRead = recv(sd, (char*)&msg, sizeof(msg), 0);
                 string msg_string(msg);
                 printf("msg string: %s\n", msg_string.c_str());
-                // operation, username, message
-                size_t pos2 = msg_string.find('\n', 2);
-                printf("pos2: %zu\n", pos2);
+                
                 char operation = msg_string[0];
 
                 // handle finding the username of the sender (of message or operation)
@@ -228,13 +226,28 @@ int main(int argc, char *argv[]) {
                 }
 
                 if (operation == '3') {
-                    // TODO: implement account deletion
-                    // this means deleting the entry from the active_users mapping
-                    // AND deleting the username from the account_set set
+                    // handle account deletion
+
+                    // delete the entry from the active_users mapping
+                    // AND delete the username from the account_set set
                     active_users.erase(sender_username);
                     account_set.erase(sender_username);
+                    
+                    // if this user has ever logged in in the past
+                    if (logged_out_users.find(sender_username) != logged_out_users.end()) {
+                        logged_out_users.erase(sender_username);
+                    }
+                    printf("%s deleted their account.\n", sender_username.c_str());
+
+                    //Close the socket and mark as 0 in list for reuse 
+                    close( sd );
+                    client_socket[i] = 0;
                     continue;
                 }
+
+                // operation, username, message
+                size_t pos2 = msg_string.find('\n', 2);
+                printf("pos2: %zu\n", pos2);
 
                 string username = msg_string.substr(2, pos2 - 2);
                 printf("username: %s\n", username.c_str());

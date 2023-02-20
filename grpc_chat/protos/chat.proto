@@ -1,0 +1,90 @@
+syntax = "proto3";
+
+package chat;
+
+service Chat {
+	rpc ChatStream(stream StreamRequest) returns  (stream StreamResponse) {}
+}
+
+message StreamRequest {
+    oneof RequestEvent {
+		Message message_request  = 1;
+        ListAccountsRequest listAccounts_request = 2;
+        DeleteAccountRequest deleteAccount_request = 3;
+        LogoutRequest logout_request = 4;
+    }
+}
+
+message StreamResponse {
+     oneof ResponseEvent {
+        Login login_response = 1;
+        Message message_response = 2;
+		ListAccountsResponse list_accounts_response = 3;
+        DeleteAccountResponse message_response  = 4;
+        LogoutResponse logout_response = 5;
+    }
+}
+
+message Message {
+    string username = 1;
+    string message = 3;
+}
+
+message ListAccountsRequest {
+    string username = 1;
+    string wildcard = 2;
+}
+
+message DeleteAccountRequest {
+    string username = 1;
+}
+
+message LogoutRequest {
+    string username = 1;
+}
+
+// this is a response
+message Login {
+    string username = 1;
+}
+
+message ListAccountsResponse {
+    repeated string account = 1;
+}
+
+message DeleteAccountResponse {
+    // delete account message
+    string message = 1;
+}
+
+message LogoutResponse {
+    // logout message
+    string username = 1;
+}
+
+// NOT NEEDED
+message QuitSession {
+    string userName = 1;
+	string session_id = 2;
+}
+
+// NOT NEEDED
+message StartSession {
+    string userName = 1;
+}
+
+// NOT NEEDED
+message JoinSession {
+    string userName = 1;
+    string session_id = 2;
+}
+
+// NOT NEEDED
+message StartSessionResponse {
+    string session_id = 1;
+}
+
+// NOT NEEDED
+message JoinSessionResponse {
+    string message = 1;
+}

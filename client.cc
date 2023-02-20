@@ -132,11 +132,15 @@ int main(int argc, char *argv[])
         }
 
         // handle operation 4: logging out
-        if (!strcmp(operation.c_str(), "4")) {
+        if (!strcmp(operation.c_str(), "4") || !strcmp(operation.c_str(), "3")) {
             memset(&msg, 0, sizeof(msg)); //clear the buffer
-            strcpy(msg, "4");
+            strcpy(msg, operation.c_str());
             send(clientSd, (char*)&msg, strlen(msg), 0);
-            printf("Logging you out. Goodbye!\n");
+            if (!strcmp(operation.c_str(), "4")) {
+                printf("Logging you out. Goodbye!\n");
+            } else {
+                printf("Successfully deleted account.\n");
+            }
             break;
         }
 
@@ -153,8 +157,6 @@ int main(int argc, char *argv[])
             printf("[Enter account matching wildcard] >");
         } else if (!strcmp(operation.c_str(), "1")) {
             printf("[Enter message] >");
-        } else {
-            printf("Press enter to confirm deletion of your account.\n");
         }
         // either the message string (operation 1)
         // or the text wildcard with which we match accounts (operation 2)
