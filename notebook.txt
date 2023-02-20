@@ -256,3 +256,17 @@ Progress:
 
 Todo:
 - implemented gRPC server and test
+
+
+Feb 20, 2023 afternoon
+===============================================================================
+Progress:
+- started gRPC server implementation
+
+Bugs:
+- right now, there is a segmentation fault issue that comes when more than one client connects to the server and tries to message each other
+    - I think it has to do with the way we begin Sessions in the server.cc code
+- the listaccounts functionality also doesn't quite work (but at the very least, it won't trigger a seg fault)
+
+Todo:
+- address bugs above
