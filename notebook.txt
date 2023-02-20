@@ -176,5 +176,19 @@ Progress:
 - implemented account deletion
 
 TODOs:
+- account deletion needs to happen more naturally: right now, the client who wants to delete account must still input a message
 - implement logging out an existing login (if the same user logs in twice on two different terminals)
-- grpc ;-;
+- start on grpc
+
+Feb 19, 2023 late evening
+===============================================================================
+Progress:
+- handled account deleting more naturally (the account is deleted right as client specifies operation=3 instead of the client needing to specify a message to send, since that doesn't make sense)
+- installed gRPC and tested out basic client/server framework on this tutorial page: https://grpc.io/docs/languages/cpp/quickstart/#install-grpc
+- designed proto for gRPC implementation, see grpc_chat_github/protos/chat.proto
+
+TODOs:
+- continue gRPC 
+- implement logging out an existing login (if the same user logs in twice on two different terminals)
+- handle the server going down (e.g., Ctrl+C) situation gracefully (right now the client prints out "Server:\n" in an infinite loop)
+    - this might involve the need to read SIGINT signals: https://www.tutorialspoint.com/how-do-i-catch-a-ctrlplusc-event-in-cplusplus
