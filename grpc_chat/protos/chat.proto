@@ -27,7 +27,8 @@ message StreamResponse {
 }
 
 message Message {
-    string username = 1;
+    string sender_username = 1;
+    string recipient_username = 2;
     string message = 3;
 }
 
@@ -50,21 +51,26 @@ message LoginRequest {
 
 message LoginResponse {
     string username = 1;
+    string message = 2;
 }
 
 message ListAccountsResponse {
     string username = 1;
-    repeated string account = 2;
+    string accounts = 2;
+    // TOOD: for better design, change to repeated field. like the below:
+    // repeated string account = 2;
 }
 
 message DeleteAccountResponse {
     // delete account message
     string username = 1;
+    string message = 2;
 }
 
 message LogoutResponse {
     // logout message
     string username = 1;
+    string message = 2;
 }
 
 // NOT NEEDED
