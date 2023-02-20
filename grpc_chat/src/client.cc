@@ -9,6 +9,7 @@
 #include <termios.h>
 #include <unistd.h>
 #include <atomic>
+#include <chrono>
 #include <grpc/grpc.h>
 #include <grpcpp/channel.h>
 #include <grpcpp/client_context.h>
@@ -40,7 +41,7 @@ class ChatClient
 public:
 	ChatClient(std::shared_ptr<Channel> channel, std::string user) : stub_(Chat::NewStub(channel)), username(user) {}
 
-	StreamRequest createChatRequest(int type, std::string messageNew = "")
+	StreamRequest createChatRequest(int type, std::string messageNew = "", std::string recipientUsername = "")
 	{
 		StreamRequest n;
 		if (type == 1) {
@@ -53,7 +54,8 @@ public:
 		else if (type == 2)
 		{   // new message request
             Message *msg = new Message();
-			msg->set_username(username);
+			msg->set_sender_username(username);
+			msg->set_recipient_username(recipientUsername);
 			msg->set_message(messageNew);
 			n.set_allocated_message_request(msg);
 		}
@@ -92,14 +94,13 @@ public:
 	void makeRequests(std::shared_ptr<ClientReaderWriter<StreamRequest, StreamResponse>> stream)
 	{
 		std::cout << "\n\n";
-		std::cout << "                               ##################################\n";
-		std::cout << "               # Welcome to Asynchronous Chat. Your username is " << username << " #\n";
-		std::cout << "                               ##################################\n\n";
-		// std::cout << "           1) To log in, type 'login <your_user_name>' and press Enter.\n";
-		std::cout << "           1) To send a new message, type the message and press Enter.\n";
-		std::cout << "           2) To list accounts, type 'listaccounts <wildcard>' and press Enter.\n";
-		std::cout << "           3) To delete your account, type 'delete <your_user_name>' and press Enter.\n";
-		std::cout << "           4) To log out, type 'logout <your_user_name>' and press Enter.\n\n";
+		std::cout << "##################################\n";
+		std::cout << "Welcome to Chat. Your username is " << username << ".\n";
+		std::cout << "##################################\n\n";
+		std::cout << "1) To send a new message, type 'message' and press Enter.\n";
+		std::cout << "2) To list accounts, type 'listaccounts <wildcard>' and press Enter.\n";
+		std::cout << "3) To delete your account, type 'delete <your_user_name>' and press Enter.\n";
+		std::cout << "4) To log out, type 'logout <your_user_name>' and press Enter.\n\n";
 
 		std::string msg;
 		// handle login
@@ -138,9 +139,17 @@ public:
 				// session_join_flag = true;
 				stream->Write(createChatRequest(4));
 				break;
-			} else {
+			} else if (ret.size() == 1 && ret[0] == "message") {
 				// send messages
-				stream->Write(createChatRequest(2, msg));
+				std::cout << "Enter recipient username: >>  ";
+				std::string recipient;
+				std::getline(std::cin, recipient);
+				std::cout << "Recipient username: " << recipient << std::endl;
+				std::cout << "Enter message: >>  ";
+				std::string message_body;
+				std::getline(std::cin, message_body);
+				std::cout << "Message body: " << message_body << std::endl;
+				stream->Write(createChatRequest(2, message_body, recipient));
 			}
 			
 		}
@@ -155,9 +164,10 @@ public:
 		while (stream->Read(&serverResponse))
 		{
 			if (serverResponse.has_listaccounts_response())
-			{ 
+			{
 				// list accounts reponse
 				std::cout << "\r(" << serverResponse.listaccounts_response().username() << " has requested to list accounts)\n";
+				std::cout << "Accounts list: " + serverResponse.listaccounts_response().accounts() << std::endl;
 			} else if (serverResponse.has_login_response())
 			{ //User Login Notification Response
 				if (serverResponse.login_response().username() == username)
@@ -175,7 +185,7 @@ public:
 			}
 			else if (serverResponse.has_message_response())
 			{ //New Message Notification Response
-				std::cout << serverResponse.message_response().username() << ": " << serverResponse.message_response().message() << "\n";
+				std::cout << serverResponse.message_response().sender_username() << ": " << serverResponse.message_response().message() << "\n";
 			}
 			else
 			{
@@ -208,8 +218,13 @@ private:
 
 int main(int argc, char **argv)
 {
-	// TODO: take login info from command line
-	std::string username = "catherine";
+	if(argc != 2)
+    {
+        std::cerr << "Usage: username" << std::endl;
+		exit(0); 
+    } //grab the IP address and port number 
+    char *username_command_line = argv[1];
+	std::string username = username_command_line;
 	ChatClient newClient(grpc::CreateChannel("localhost:50051", grpc::InsecureChannelCredentials()), username);
 	newClient.Chat();
 	return 0;
