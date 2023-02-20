@@ -8,19 +8,20 @@ service Chat {
 
 message StreamRequest {
     oneof RequestEvent {
-		Message message_request  = 1;
-        ListAccountsRequest listAccounts_request = 2;
-        DeleteAccountRequest deleteAccount_request = 3;
-        LogoutRequest logout_request = 4;
+        LoginRequest login_request = 1;
+		Message message_request  = 2;
+        ListAccountsRequest listAccounts_request = 3;
+        DeleteAccountRequest deleteAccount_request = 4;
+        LogoutRequest logout_request = 5;
     }
 }
 
 message StreamResponse {
      oneof ResponseEvent {
-        Login login_response = 1;
+        LoginResponse login_response = 1;
         Message message_response = 2;
-		ListAccountsResponse list_accounts_response = 3;
-        DeleteAccountResponse message_response  = 4;
+		ListAccountsResponse listAccounts_response = 3;
+        DeleteAccountResponse deleteAccount_response  = 4;
         LogoutResponse logout_response = 5;
     }
 }
@@ -43,18 +44,22 @@ message LogoutRequest {
     string username = 1;
 }
 
-// this is a response
-message Login {
+message LoginRequest {
+    string username = 1;
+}
+
+message LoginResponse {
     string username = 1;
 }
 
 message ListAccountsResponse {
-    repeated string account = 1;
+    string username = 1;
+    repeated string account = 2;
 }
 
 message DeleteAccountResponse {
     // delete account message
-    string message = 1;
+    string username = 1;
 }
 
 message LogoutResponse {
@@ -64,18 +69,18 @@ message LogoutResponse {
 
 // NOT NEEDED
 message QuitSession {
-    string userName = 1;
+    string username = 1;
 	string session_id = 2;
 }
 
 // NOT NEEDED
 message StartSession {
-    string userName = 1;
+    string username = 1;
 }
 
 // NOT NEEDED
 message JoinSession {
-    string userName = 1;
+    string username = 1;
     string session_id = 2;
 }
 
