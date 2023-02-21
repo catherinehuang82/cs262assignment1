@@ -45,7 +45,6 @@ class Session
 	// std::shared_ptr<std::string, ServerReaderWriter<StreamResponse, StreamRequest>> chat_stream;
 	std::mutex d_mutex;
 	// std::string d_user;
-	int d_userCount;
 
 public:
     // session constructor
@@ -55,6 +54,7 @@ public:
 
     std::unordered_map<std::string, ServerReaderWriter<StreamResponse, StreamRequest> *> d_allStreams;
     std::set<std::string> allAccounts;
+    int d_userCount;
 
 	void broadcast(StreamResponse message)
 	{
@@ -84,22 +84,35 @@ public:
 		else
 		{
             std::cout << "Successful login for user: " << username << std::endl;
-			std::lock_guard<std::mutex> lg(d_mutex);
+			// std::lock_guard<std::mutex> lg(d_mutex);
 			LoginResponse *newLogin = new LoginResponse();
 			newLogin->set_username(username);
-			d_allStreams[username] = stream;
+
+            // "record" this stream in the allStreams dictionary
             allAccounts.insert(username);
+            d_allStreams[username] = stream;
+
+            // for debugging purposes
+            std::cout << "Accounts list: " << std::endl;
+            for (std::string a: allAccounts) {
+                std::cout << a << std::endl;
+            }
+
+            newLogin->set_message("You have successfully logged in.");
 			responseMessage.set_allocated_login_response(newLogin);
+
+            // tell client they have successfully logged in
+            stream->Write(responseMessage);
             std::cout << "Debug 2" << std::endl;
 			++d_userCount;
-			broadcast(responseMessage);
+			// broadcast(responseMessage);
             std::cout << "Debug 3" << std::endl;
 		}
 	}
 
 	void leave(const std::string &username)
 	{
-		std::lock_guard<std::mutex> lg(d_mutex);
+		// std::lock_guard<std::mutex> lg(d_mutex);
 		--d_userCount;
 	}
 
@@ -112,14 +125,14 @@ public:
 class ChatImpl final : public Chat::Service
 {
 	// std::unordered_map<std::string, std::unique_ptr<Session>> d_sessions;
-    std::unique_ptr<Session> session;
+    Session *session = new Session();
 	std::mutex d_mutex;
 
 public:
 	Status ChatStream(ServerContext *context, ServerReaderWriter<StreamResponse, StreamRequest> *stream) override
 	{
-        std::unique_ptr<Session> newSession(new Session());
-		session = std::move(newSession);
+        // std::unique_ptr<Session> newSession(new Session());
+		// session = std::move(newSession);
 		StreamRequest message;
 
 		while (stream->Read(&message))
@@ -137,15 +150,6 @@ public:
 
                 session->join(stream, username, true);
                 d_mutex.unlock();
-
-				// StartSessionResponse *start_session_response = new StartSessionResponse();
-				// start_session_response->set_session_id(id);
-				// responseMessage.set_allocated_startsession_response(start_session_response);
-                LoginResponse *login_response = new LoginResponse();
-                login_response->set_username(username);
-                responseMessage.set_allocated_login_response(login_response);
-                
-				session->broadcast(responseMessage);
 			}
 			else if (message.has_listaccounts_request())
 			{
@@ -166,20 +170,18 @@ public:
                         matching_accounts += '\n';
                     }
                 }
-
                 // accounts_list_str.pop_back();
                 printf("listing accounts...\n");
 
+                d_mutex.lock();
                 // send accounts list to client that requested it
                 ListAccountsResponse *listAccounts_response = new ListAccountsResponse();
                 listAccounts_response->set_username(username);
                 listAccounts_response->set_accounts(matching_accounts);
 
-                // TODO: iterate through all usernames in d_allStreams
-                // and add to the accounts repeated field
-
 				responseMessage.set_allocated_listaccounts_response(listAccounts_response);
 				stream->Write(responseMessage);
+                d_mutex.unlock();
 			}
 			else if (message.has_message_request())
 			{
@@ -187,44 +189,83 @@ public:
 				username = message.message_request().sender_username();
                 std::string recipient_username = message.message_request().recipient_username();
 
+                std::string message_string = message.message_request().message();
+
+                d_mutex.lock();
 				Message *newMessage = new Message();
 				newMessage->set_sender_username(username);
                 std::cout << "Sender: " << username;
-                newMessage->set_recipient_username(recipient_username);
-                std::cout << ". Recipient: " << recipient_username;
-				newMessage->set_message(message.message_request().message());
-                std::cout << ". Message: " << message.message_request().message() << std::endl;
-				responseMessage.set_allocated_message_response(newMessage);
-
-                // recipient session
-
-                d_mutex.lock();
-                session->d_allStreams[recipient_username]->Write(responseMessage);
+                std::cout << ". Intended recipient: " << recipient_username;
+				
+                if (session->d_allStreams.find(recipient_username) != session->d_allStreams.end()) {
+                    newMessage->set_recipient_username(recipient_username);
+                    newMessage->set_message(message_string);
+                    std::cout << ". Message: " << message_string << std::endl;
+				    responseMessage.set_allocated_message_response(newMessage);
+                    session->d_allStreams[recipient_username]->Write(responseMessage);
+                } else {
+                    // throw an error if sender inputs a recipient username that does not exist
+                    newMessage->set_sender_username("Server");
+                    newMessage->set_message("The recipient you specified does not exist. Please try again.");
+                    // end the error message back to the client itself
+                    responseMessage.set_allocated_message_response(newMessage);
+                    stream->Write(responseMessage);
+                }
                 d_mutex.unlock();
                 std::cout << "Debug 1" << std::endl;
                 std::cout << "Debug 4" << std::endl;
 			}
 			else if (message.has_logout_request())
 			{
-				std::cout << "Logout request received\n";
-
-				// id = message.quitsession_request().session_id();
                 // user to be logged out
 				username = message.logout_request().username();
 
+                d_mutex.lock();
 				LogoutResponse *newLogout = new LogoutResponse;
-				newLogout->set_username(message.logout_request().username());
+				newLogout->set_username(username);
+                newLogout->set_message("You have successfully logged out.");
 				responseMessage.set_allocated_logout_response(newLogout);
 
 				session->leave(username);
-				if (session->userCount() == 0)
-				{
-                    // I don't think there's any actual implementation needed here? 
-                    // because the server stays up
-					std::cout << "Erasing server session." << std::endl;
-					continue;
-				}
-				session->broadcast(responseMessage);
+
+                std::cout << "Logout request received from " << username << ". Now, there are " << session->d_userCount << " users active." << std::endl;
+				// session->broadcast(responseMessage);
+                stream->Write(responseMessage);
+
+                d_mutex.unlock();
+
+                // for debugging purposes
+                std::cout << "Accounts list: " << std::endl;
+                for (std::string a: session->allAccounts) {
+                    std::cout << a << "\n";
+                }
+			}
+            else if (message.has_deleteaccount_request())
+			{
+                // user to be logged out
+				username = message.deleteaccount_request().username();
+
+                d_mutex.lock();
+				DeleteAccountResponse *newDeleteAccount = new DeleteAccountResponse;
+				newDeleteAccount->set_username(username);
+                newDeleteAccount->set_message("You have successfully deleted your account.");
+				responseMessage.set_allocated_deleteaccount_response(newDeleteAccount);
+
+                session->d_allStreams.erase(username);
+                session->allAccounts.erase(username);
+
+				session->leave(username);
+
+                std::cout << "Delete account request received from " << username << ". Now, there are " << session->d_userCount << " users active." << std::endl;
+				// session->broadcast(responseMessage);
+                stream->Write(responseMessage);
+                d_mutex.unlock();
+
+                // for debugging purposes
+                std::cout << "Accounts list: " << std::endl;
+                for (std::string a: session->allAccounts) {
+                    std::cout << a << "\n";
+                }
 			}
 			else
 			{
@@ -232,6 +273,7 @@ public:
 			}
 		}
 
+        delete session;
 		return Status::OK;
 	}
 
