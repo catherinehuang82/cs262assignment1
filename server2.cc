@@ -22,6 +22,25 @@ std::unordered_map<std::string, int> active_users; // username : id
 std::unordered_map<std::string, std::string> logged_out_users; // username : undelivered messages
 std::set<std::string> account_set; // all usernames (both logged in AND not logged in)
 
+void sigintHandler( int signum ) {
+    cout << "Interrupt signal (" << signum << ") received.\n";
+    char msg[1500];
+    for (auto it = active_users.begin(); it != active_users.end(); ++it) {
+        int sd = it->second;
+        memset(&msg, 0, sizeof(msg));
+        const char* server_shutdown_msg = "Server shut down permaturely, so logging you out.";
+        strcpy(msg, server_shutdown_msg);
+        // send(new_socket, (char*)&msg, strlen(msg), 0);
+        send(sd, (char*)&msg, sizeof(msg), 0);
+    }
+   exit(signum);
+}
+
+// this should be handled when a client Ctrl+C's
+void sigabrtHandler(int signum) {
+    cout << "Interrupt signal (" << signum << ") received.\n";
+}
+
 int main(int argc, char *argv[]) {
 
     //for the server, we only need to specify a port number
@@ -34,6 +53,10 @@ int main(int argc, char *argv[]) {
     int port = atoi(argv[1]);
     //buffer to send and receive messages with
     char msg[1500];
+
+    // register signal handler
+    signal(SIGINT, sigintHandler);
+    signal(SIGABRT, sigabrtHandler);
 
     //setup a socket and connection tools
     sockaddr_in servAddr;
@@ -140,8 +163,14 @@ int main(int argc, char *argv[]) {
             recv(new_socket, (char*)&msg, sizeof(msg), 0);
             std::string new_client_username(msg);
 
-            // right now this line causes a segmentation fault
-            // client_info->addClient(new_client_username, new_socket);
+            if (active_users.find(new_client_username) != active_users.end()) {
+                int existing_login_sd = active_users[new_client_username];
+                memset(&msg, 0, sizeof(msg));
+                const char* force_logout_msg = "Another user logged in as your name, so logging you out.";
+                strcpy(msg, force_logout_msg);
+                // send(new_socket, (char*)&msg, strlen(msg), 0);
+                send(existing_login_sd, (char*)&msg, sizeof(msg), 0);
+            }
             active_users[new_client_username] = new_socket;
             account_set.insert(new_client_username);
 
@@ -271,15 +300,6 @@ int main(int argc, char *argv[]) {
                     // TODO: implement fetching the wildcard (maybe have the wildcard be the thing after the whitespace)
                     std::string wildcard = message;
                     
-                    // fetch all usernames into a set
-                    // std::set<std::string> account_set;
-                    // for(auto i:active_users) {
-                    //     account_set.insert(i.first);
-                    // }
-                    // for(auto i:logged_out_users) {
-                    //     account_set.insert(i.first);
-                    // }
-
                     // string with all matching accounts 
                     std::string matching_accounts;
                     for (std::string a : account_set)
@@ -332,36 +352,8 @@ int main(int argc, char *argv[]) {
                             bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
                         }
                     }
-                    // msg[valread] = '\0';  
-                    // send(sd , msg , strlen(msg) , 0 );  
                 }  
-                // bytesRead = recv(client_socket[i], (char*)&msg, sizeof(msg), 0);
-                // if(!strcmp(msg, "exit"))
-                // {
-                //     printf("Client %d has quit the session\n", i);
-                //     //Somebody disconnected , get his details and print 
-                //     getpeername(sd, (sockaddr*)&newSockAddr , \
-                //         (socklen_t*)&newSockAddr);  
-                //     printf("Host disconnected , ip %s , port %d \n" , 
-                //         inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
-                        
-                //     //Close the socket and mark as 0 in list for reuse 
-                //     close(sd);  
-                //     client_socket[i] = 0; 
-                //     break;
-                // }
-                // printf("Client %d: %s\n", i, msg);
-
-                // //send the message to client
-                // bytesWritten = send(client_socket[0], (char*)&msg, strlen(msg), 0);
             }
         }
-        // }
-        // cout << "********Session********" << endl;
-        // cout << "Bytes written: " << bytesWritten << " Bytes read: " << bytesRead << endl;
-        // // cout << "Elapsed time: " << (end1.tv_sec - start1.tv_sec) 
-        //     // << " secs" << endl;
-        // cout << "Connection closed..." << endl;
-
     }
 }
