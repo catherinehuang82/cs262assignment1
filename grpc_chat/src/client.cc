@@ -93,19 +93,21 @@ public:
 	/*Client Requests*/
 	void makeRequests(std::shared_ptr<ClientReaderWriter<StreamRequest, StreamResponse>> stream)
 	{
+
+		// handle login
+		stream->Write(createChatRequest(1, username));
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+
 		std::cout << "\n\n";
 		std::cout << "##################################\n";
 		std::cout << "Welcome to Chat. Your username is " << username << ".\n";
 		std::cout << "##################################\n\n";
-		std::cout << "1) To send a new message, type 'message' and press Enter.\n";
-		std::cout << "2) To list accounts, type 'listaccounts <wildcard>' and press Enter.\n";
-		std::cout << "3) To delete your account, type 'delete <your_user_name>' and press Enter.\n";
-		std::cout << "4) To log out, type 'logout <your_user_name>' and press Enter.\n\n";
+		std::cout << "1) To send a new message, type 1 and press Enter.\n";
+		std::cout << "2) To list accounts, type 2 and press Enter.\n";
+		std::cout << "3) To delete your account, type 3 and press Enter.\n";
+		std::cout << "4) To log out, type 4 and press Enter.\n\n";
 
 		std::string msg;
-		// handle login
-		stream->Write(createChatRequest(1, username));
-		std::this_thread::sleep_for(std::chrono::seconds(2));
 
 		// Write messages to session
 		termios oldt;
@@ -117,29 +119,28 @@ public:
 		{
 			std::cout << ">>  ";
 			std::getline(std::cin, msg);
-			std::vector<std::string> ret;
-			parse(msg, ret);
-			if (ret.size() == 2 && ret[0] == "listaccounts")
+			// std::vector<std::string> ret;
+			// parse(msg, ret);
+			if (msg == "2")
 			{
-				wildcard = ret[2];
+				std::cout << "Enter wildcard: >> ";
+				std::string wildcard;
+				std::getline(std::cin, wildcard);
 				stream->Write(createChatRequest(3, wildcard));
 				std::this_thread::sleep_for(std::chrono::seconds(2));
 			}
 			// if logging out...
-			else if (ret.size() == 2 && ret[0] == "logout")
+			else if (msg == "4")
 			{
-				// TODO: throw an error if ret[1] doesn't match username
-				username = ret[1];
 				stream->Write(createChatRequest(5));
 				break;
-			} else if (ret.size() == 2 && ret[0] == "delete")
+			}
+			// if deleting account...
+			else if (msg == "3")
 			{
-				// TODO: throw an error if ret[1] doesn't match username
-				username = ret[1];
-				// session_join_flag = true;
 				stream->Write(createChatRequest(4));
 				break;
-			} else if (ret.size() == 1 && ret[0] == "message") {
+			} else if (msg == "1") {
 				// send messages
 				std::cout << "Enter recipient username: >>  ";
 				std::string recipient;
@@ -150,8 +151,13 @@ public:
 				std::getline(std::cin, message_body);
 				std::cout << "Message body: " << message_body << std::endl;
 				stream->Write(createChatRequest(2, message_body, recipient));
+			} else {
+				std::cout << "Invalid input. Please type one of the following.\n\n";
+				std::cout << "1) To send a new message, type 1 and press Enter.\n";
+				std::cout << "2) To list accounts, type 2 and press Enter.\n";
+				std::cout << "3) To delete your account, type 3 and press Enter.\n";
+				std::cout << "4) To log out, type 4 and press Enter.\n\n";
 			}
-			
 		}
 		tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
 		stream->WritesDone();
@@ -167,24 +173,23 @@ public:
 			{
 				// list accounts reponse
 				std::cout << "\r(" << serverResponse.listaccounts_response().username() << " has requested to list accounts)\n";
-				std::cout << "Accounts list: " + serverResponse.listaccounts_response().accounts() << std::endl;
+				std::cout << "Accounts list:\n" + serverResponse.listaccounts_response().accounts() << std::endl;
 			} else if (serverResponse.has_login_response())
-			{ //User Login Notification Response
-				if (serverResponse.login_response().username() == username)
-					std::cout << "\r("
-							  << "You are now logged in)\n";
-				else
-					std::cout << "\r(" << serverResponse.login_response().username() << " has logged in)\n";
+			{ 
+				// notify the user that they have logged in
+				std::cout << "\r(" << serverResponse.login_response().message() << ")\n";
 			}
 			else if (serverResponse.has_logout_response())
-			{ //User Logout Notification Response
-				std::cout << "\r(" << serverResponse.logout_response().username() << " has logged out)\n";
+			{
+				// notify the user that they have logged out
+				std::cout << "\r(" << serverResponse.logout_response().message() << ")\n";
 			}
 			else if (serverResponse.has_deleteaccount_response()) {
-				std::cout << "\r(" << serverResponse.deleteaccount_response().username() << " has deleted their account out)\n";
+				std::cout << "\r(" << serverResponse.deleteaccount_response().message() << ")\n";
 			}
 			else if (serverResponse.has_message_response())
-			{ //New Message Notification Response
+			{ 
+				// send the incoming message to the recipient client
 				std::cout << serverResponse.message_response().sender_username() << ": " << serverResponse.message_response().message() << "\n";
 			}
 			else
@@ -198,13 +203,14 @@ public:
 	{
 		ClientContext context;
 		std::shared_ptr<ClientReaderWriter<StreamRequest, StreamResponse>> stream(stub_->ChatStream(&context));
+		
 		std::thread writer(&ChatClient::makeRequests, this, stream); // Separate thread to make Requests to Server.
 
 		processResponses(stream); //Process Response from Server
 		writer.join();
 		Status status = stream->Finish();
 		if (status.ok())
-			std::cout << "(You have successfully logged out)" << std::endl;
+			std::cout << "(Client exited with OK status)" << std::endl;
 		else
 			std::cout << "(There was a server error)" << std::endl;
 	}
