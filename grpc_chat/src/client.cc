@@ -82,14 +82,6 @@ public:
 		return n;
 	}
 
-	void parse(std::string msg, std::vector<std::string> &ret)
-	{
-		std::stringstream temp(msg);
-		std::string temp2;
-		while (std::getline(temp, temp2, ' '))
-			ret.push_back(temp2);
-	}
-
 	/*Client Requests*/
 	void makeRequests(std::shared_ptr<ClientReaderWriter<StreamRequest, StreamResponse>> stream)
 	{
@@ -119,8 +111,6 @@ public:
 		{
 			std::cout << ">>  ";
 			std::getline(std::cin, msg);
-			// std::vector<std::string> ret;
-			// parse(msg, ret);
 			if (msg == "2")
 			{
 				std::cout << "Enter wildcard: >> ";
@@ -175,7 +165,7 @@ public:
 				std::cout << "\r(" << serverResponse.listaccounts_response().username() << " has requested to list accounts)\n";
 				std::cout << "Accounts list:\n" + serverResponse.listaccounts_response().accounts() << std::endl;
 			} else if (serverResponse.has_login_response())
-			{ 
+			{
 				// notify the user that they have logged in
 				std::cout << "\r(" << serverResponse.login_response().message() << ")\n";
 			}
@@ -183,9 +173,11 @@ public:
 			{
 				// notify the user that they have logged out
 				std::cout << "\r(" << serverResponse.logout_response().message() << ")\n";
+				break;
 			}
 			else if (serverResponse.has_deleteaccount_response()) {
 				std::cout << "\r(" << serverResponse.deleteaccount_response().message() << ")\n";
+				break;
 			}
 			else if (serverResponse.has_message_response())
 			{ 
