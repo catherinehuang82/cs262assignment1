@@ -41,6 +41,92 @@ void sigabrtHandler(int signum) {
     cout << "Interrupt signal (" << signum << ") received.\n";
 }
 
+void quitUser(int &sd, int[] &client_socket, sockaddr_in newSockAddr, socklen_t newSockAddrSize, string sender_username) {
+    //Somebody disconnected , get their details and print 
+    getpeername(sd , (sockaddr*)&newSockAddr , (socklen_t*)&newSockAddrSize);  
+    printf("Client %d disconnected , ip %s , port %d \n" , i, 
+        inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));
+
+    //Close the socket and mark as 0 in list for reuse 
+    close( sd );
+    client_socket[i] = 0;
+
+    // handle logging out the user by deleting from active senders map
+    active_users.erase(sender_username);
+    logged_out_users[sender_username] = "Messages you missed when you were gone:\n";
+}
+
+void deleteAccount(int[] &client_socket, string sender_username) {
+    // delete the entry from the active_users mapping
+    // AND delete the username from the account_set set
+    active_users.erase(sender_username);
+    account_set.erase(sender_username);
+    
+    // if this user has ever logged in in the past
+    if (logged_out_users.find(sender_username) != logged_out_users.end()) {
+        logged_out_users.erase(sender_username);
+    }
+    printf("%s deleted their account.\n", sender_username.c_str());
+
+    //Close the socket and mark as 0 in list for reuse 
+    close( sd );
+    client_socket[i] = 0;
+}
+
+void listAccounts(string wildcard, int[] &client_socket) {    
+    // string with all matching accounts 
+    std::string matching_accounts;
+    for (std::string a : account_set)
+    {
+        // if a username contains wildcard, add to string
+        if (a.find(wildcard) != std::string::npos) {
+            matching_accounts += a;
+            matching_accounts += '\n';
+        }
+    }
+
+    // accounts_list_str.pop_back();
+    printf("listing accounts...\n");
+
+    // send accounts list to client that requested it
+    bytesWritten = send(client_socket[i], (char*)&matching_accounts,
+        strlen((char*)&matching_accounts), 0);
+}
+
+void sendMessage(string username, string message, string sender_username, int[] &client_socket) {
+    //set the string terminating NULL byte on the end of the data read 
+    auto active_it = active_users.find(username);
+    auto logged_out_it = logged_out_users.find(username);
+
+    // if username is not found at all (regardless of whether the user is logged in or not)
+    // TODO: change this to just iterating through the account_set set of usernames
+    if (active_it == active_users.end() && logged_out_it == logged_out_users.end()) {  
+        // not found  
+        string username_not_found_error = "Username does not exist, try sending to another user.";
+        bytesWritten = send(
+            client_socket[i],
+            username_not_found_error.c_str(),
+            strlen(username_not_found_error.c_str()), 0);
+        continue;
+    }  
+
+    if (logged_out_it != logged_out_users.end()) {
+        // user is logged out, save message for them
+        logged_out_users[username] = logged_out_users[username] + sender_username + ": " + message + "\n";
+    }
+    else {
+        // user is logged in, so just send right now
+        int client_socket_fd = active_it->second;
+        message = sender_username + ": " + message;
+        printf("Client: %d, username: %s, message: %s\n", i, sender_username.c_str(), message.c_str());
+        // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
+        if (client_socket_fd != 0) {
+            printf("sending message to recipient...\n");
+            bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
+        }
+    } 
+}
+
 int main(int argc, char *argv[]) {
 
     //for the server, we only need to specify a port number
@@ -235,42 +321,11 @@ int main(int argc, char *argv[]) {
                 }
                 // TODO: throw an error if it_find_sender == active_users.end()
 
-                if (operation == '4')
-                {
-                    //Somebody disconnected , get his details and print 
-                    getpeername(sd , (sockaddr*)&newSockAddr , \
-                        (socklen_t*)&newSockAddrSize);  
-                    printf("Client %d disconnected , ip %s , port %d \n" , i, 
-                        inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
-                        
-                    //Close the socket and mark as 0 in list for reuse 
-                    close( sd );
-                    client_socket[i] = 0;
-
-                    // handle logging out the user by deleting from active senders map
-                    active_users.erase(sender_username);
-
-                    logged_out_users[sender_username] = "Messages you missed when you were gone:\n";
+                if (operation == '4'){ //quit 
+                    quitUser(sd, client_socket, newSockAddr, newSockAddrSize, sender_username);
                     continue;
-                }
-
-                if (operation == '3') {
-                    // handle account deletion
-
-                    // delete the entry from the active_users mapping
-                    // AND delete the username from the account_set set
-                    active_users.erase(sender_username);
-                    account_set.erase(sender_username);
-                    
-                    // if this user has ever logged in in the past
-                    if (logged_out_users.find(sender_username) != logged_out_users.end()) {
-                        logged_out_users.erase(sender_username);
-                    }
-                    printf("%s deleted their account.\n", sender_username.c_str());
-
-                    //Close the socket and mark as 0 in list for reuse 
-                    close( sd );
-                    client_socket[i] = 0;
+                } else if (operation == '3') { //delete account
+                    deleteAccount(client_socket, sender_username);
                     continue;
                 }
 
@@ -284,75 +339,12 @@ int main(int argc, char *argv[]) {
                 string message = msg_string.substr(pos2 + 1, msg_string.length() - pos2);
                 printf("message: %s\n", message.c_str());
                 printf("message length: %lu\n", strlen(message.c_str()));
-                // if (!strcmp(message.c_str(), "exit"))  
-                // {
-                //     //Somebody disconnected , get his details and print 
-                //     getpeername(sd , (sockaddr*)&newSockAddr , \
-                //         (socklen_t*)&newSockAddrSize);  
-                //     printf("Client %d disconnected , ip %s , port %d \n" , i, 
-                //         inet_ntoa(newSockAddr.sin_addr) , ntohs(newSockAddr.sin_port));  
-                        
-                //     //Close the socket and mark as 0 in list for reuse 
-                //     close( sd );  
-                //     client_socket[i] = 0;
-                // }
-                if (operation == '2') {
-                    // TODO: implement fetching the wildcard (maybe have the wildcard be the thing after the whitespace)
-                    std::string wildcard = message;
-                    
-                    // string with all matching accounts 
-                    std::string matching_accounts;
-                    for (std::string a : account_set)
-                    {
-                        // if a username contains wildcard, add to string
-                        if (a.find(wildcard) != std::string::npos) {
-                            matching_accounts += a;
-                            matching_accounts += '\n';
-                        }
-                    }
 
-                    // accounts_list_str.pop_back();
-                    printf("listing accounts...\n");
-
-                    // send accounts list to client that requested it
-                    bytesWritten = send(client_socket[i], (char*)&matching_accounts,
-                        strlen((char*)&matching_accounts), 0);
+                if (operation == '2') { // list accounts
+                    listAccounts(message, client_socket);
+                } else if (operation == '1') { // send message
+                    sendMessage(username, message, sender_username, client_socket);
                 }
-                // send the message
-                else if (operation == '1') {
-                    //set the string terminating NULL byte on the end 
-                    //of the data read 
-                    auto active_it = active_users.find(username);
-                    auto logged_out_it = logged_out_users.find(username);
-
-                    // if username is not found at all (regardless of whether the user is logged in or not)
-                    // TODO: change this to just iterating through the account_set set of usernames
-                    if (active_it == active_users.end() && logged_out_it == logged_out_users.end()) {  
-                        // not found  
-                        string username_not_found_error = "Username does not exist, try sending to another user.";
-                        bytesWritten = send(
-                            client_socket[i],
-                            username_not_found_error.c_str(),
-                            strlen(username_not_found_error.c_str()), 0);
-                        continue; 
-                    }  
-
-                    if (logged_out_it != logged_out_users.end()) {
-                        // user is logged out, save message for them
-                        logged_out_users[username] = logged_out_users[username] + sender_username + ": " + message + "\n";
-                    }
-                    else {
-                        // user is logged in, so just send right now
-                        int client_socket_fd = active_it->second;
-                        message = sender_username + ": " + message;
-                        printf("Client: %d, username: %s, message: %s\n", i, sender_username.c_str(), message.c_str());
-                        // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
-                        if (client_socket_fd != 0) {
-                            printf("sending message to recipient...\n");
-                            bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
-                        }
-                    }
-                }  
             }
         }
     }
