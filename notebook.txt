@@ -292,3 +292,15 @@ TODO and bugs:
     - so we need to fix this
 - in gRPC, implement a logged out user's messages getting saved
 - gRPC documentation and test
+
+Feb 21, 2023 morning
+===============================================================================
+Progress:
+- in the wire protocol, implemented handling of two cases: (1) logging out an existing user if someone else logs in with their name, (2) having the client gracefully exit if server goes down due to interrupt (e.g., Ctrl + C)
+
+TODO: 
+- the above can be done better -- right now, the client just listens to the following strings from the server
+    (1) "Server shut down permaturely, so logging you out."
+    (2) "Another user logged in as your name, so logging you out."
+    but these strings could well be also sent as messages between clients...
+- all the TODOs from yesterday
