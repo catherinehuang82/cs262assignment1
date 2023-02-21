@@ -35,15 +35,20 @@ void listener_thread(int sd, int bytes_read) {
         // reading from server
         memset(&msg_recv, 0, sizeof(msg_recv)); // clear the buffer
         bytes_read += recv(sd, (char*)&msg_recv, sizeof(msg_recv), 0);
-        // TODO: handle the case where a user is logged out
-        // because another process logged in as the same username
-        // consider std::terminate() to terminate all threads
-        // maybe also print out an "automatically logged out due to same login from another process." message
-        if(!strcmp(msg_recv, "exit")) {
-            printf("Server has quit the session.\n");
-            break;
+        if (!strcmp(msg_recv, "Server shut down permaturely, so logging you out.")) {
+            printf("\nServer shut down permaturely, so logging you out.\n");
+            exit(1);
+        } else if (!strcmp(msg_recv, "Another user logged in as your name, so logging you out.")) {
+            char msg[1500]; 
+            // clear the buffer
+            memset(&msg, 0, sizeof(msg));
+            strcpy(msg, "4");
+            // tell the server that client has logged out by sending a "4" over
+            send(sd, (char*)&msg, strlen(msg), 0);
+            // terminate the client process (both this thread and the main thread)
+            printf("\nAnother user logged in as your name, so logging you out.\n");
+            exit(1);
         } else {
-            // TODO: make this a printf statement
             printf("\n%s\n", msg_recv);
         }
     }
@@ -102,14 +107,6 @@ int main(int argc, char *argv[])
 
     while(1)
     {
-        //clear the socket set 
-        // FD_ZERO(&clientfd);  
-     
-        // //add master socket to set 
-        // FD_SET(clientSd, &clientfd);  
-        // int max_sd = clientSd;
-
-        // sending to the server
 
         printf("[Enter operation] >");
         string operation;
@@ -131,7 +128,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        // handle operation 4: logging out
+        // handle operations 3 and 4: deleting account and logging out, respectively
         if (!strcmp(operation.c_str(), "4") || !strcmp(operation.c_str(), "3")) {
             memset(&msg, 0, sizeof(msg)); //clear the buffer
             strcpy(msg, operation.c_str());
@@ -163,30 +160,11 @@ int main(int argc, char *argv[])
         string data;
         getline(cin, data);
 
-        //wait for an activity on one of the sockets , timeout is NULL, so wait indefinitely 
-        // activity = select( max_sd + 1 , &clientfd , NULL , NULL , NULL);  
-       
-        // if ((activity < 0) && (errno!=EINTR))  
-        // {  
-        //     printf("select error");  
-        // } 
-
-        // if (FD_ISSET(clientSd , &clientfd)) {
-        // sending to server
-        // socketMessage* socket_message;
-        // socket_message->recipient_username = username;
-        // socket_message->message = data;
         string msg_str = operation + '\n' + username + '\n' + data;
         
         memset(&msg, 0, sizeof(msg)); //clear the buffer
         strcpy(msg, msg_str.c_str());
-        // if(data == "exit")
-        // {
-        //     send(clientSd, (char*)&msg, strlen(msg), 0);
-        //     break;
-        // }
         bytesWritten = send(clientSd, (char*)&msg, strlen(msg), 0);
-        // }
     }
     gettimeofday(&end1, NULL);
     // close(clientSd);
