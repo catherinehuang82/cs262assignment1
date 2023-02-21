@@ -11,6 +11,7 @@
 #include <atomic>
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
+// #include <grpcpp/call_op_set.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 #include <grpcpp/security/server_credentials.h>
@@ -74,40 +75,42 @@ public:
 		StreamResponse responseMessage;
 
 		if (d_allStreams.find(username) != d_allStreams.end())
-        // if user is already logged in
+        // if user is already logged in, we want to log out that existing login (to preserve the new one)
 		{
-			LoginResponse *failed_login_response = new LoginResponse();
-			failed_login_response->set_message("Username " + username + " is already logged in.");
-			responseMessage.set_allocated_login_response(failed_login_response);
-			stream->Write(responseMessage);
+			LogoutResponse *forced_logout_response = new LogoutResponse();
+            forced_logout_response->set_username(username);
+			forced_logout_response->set_message("There is a new login for your username " + username + ", so logging you out.");
+			responseMessage.set_allocated_logout_response(forced_logout_response);
+			d_allStreams[username]->Write(responseMessage);
+            --d_userCount;
+            d_allStreams.erase(username);
 		}
-		else
-		{
-            std::cout << "Successful login for user: " << username << std::endl;
-			// std::lock_guard<std::mutex> lg(d_mutex);
-			LoginResponse *newLogin = new LoginResponse();
-			newLogin->set_username(username);
 
-            // "record" this stream in the allStreams dictionary
-            allAccounts.insert(username);
-            d_allStreams[username] = stream;
+        // log in the new login
+		std::cout << "Successful login for user: " << username << "\n";
+        // std::lock_guard<std::mutex> lg(d_mutex);
+        LoginResponse *newLogin = new LoginResponse();
+        newLogin->set_username(username);
 
-            // for debugging purposes
-            std::cout << "Accounts list: " << std::endl;
-            for (std::string a: allAccounts) {
-                std::cout << a << std::endl;
-            }
+        // "record" this stream in the allStreams dictionary
+        allAccounts.insert(username);
+        d_allStreams[username] = stream;
 
-            newLogin->set_message("You have successfully logged in.");
-			responseMessage.set_allocated_login_response(newLogin);
+        // for debugging purposes
+        std::cout << "Accounts list: " << std::endl;
+        for (std::string a: allAccounts) {
+            std::cout << a << std::endl;
+        }
 
-            // tell client they have successfully logged in
-            stream->Write(responseMessage);
-            std::cout << "Debug 2" << std::endl;
-			++d_userCount;
-			// broadcast(responseMessage);
-            std::cout << "Debug 3" << std::endl;
-		}
+        newLogin->set_message("You have successfully logged in.");
+        responseMessage.set_allocated_login_response(newLogin);
+
+        // tell client they have successfully logged in
+        stream->Write(responseMessage);
+        std::cout << "Debug 2" << std::endl;
+        ++d_userCount;
+        // broadcast(responseMessage);
+        std::cout << "Debug 3" << std::endl;
 	}
 
 	void leave(const std::string &username)
@@ -122,10 +125,11 @@ public:
 	}
 };
 
+Session *session;
+
 class ChatImpl final : public Chat::Service
 {
 	// std::unordered_map<std::string, std::unique_ptr<Session>> d_sessions;
-    Session *session = new Session();
 	std::mutex d_mutex;
 
 public:
@@ -133,6 +137,7 @@ public:
 	{
         // std::unique_ptr<Session> newSession(new Session());
 		// session = std::move(newSession);
+        // session = new Session();
 		StreamRequest message;
 
 		while (stream->Read(&message))
@@ -148,7 +153,9 @@ public:
 
 				d_mutex.lock();
 
+                std::cout << "Debug 6\n";
                 session->join(stream, username, true);
+                std::cout << "Debug 7\n";
                 d_mutex.unlock();
 			}
 			else if (message.has_listaccounts_request())
@@ -226,10 +233,14 @@ public:
                 newLogout->set_message("You have successfully logged out.");
 				responseMessage.set_allocated_logout_response(newLogout);
 
+                session->d_allStreams.erase(username);
 				session->leave(username);
 
                 std::cout << "Logout request received from " << username << ". Now, there are " << session->d_userCount << " users active." << std::endl;
 				// session->broadcast(responseMessage);
+
+                // WRITE LAST??
+                // https://grpc.github.io/grpc/cpp/classgrpc_1_1_write_options.html
                 stream->Write(responseMessage);
 
                 d_mutex.unlock();
@@ -258,6 +269,9 @@ public:
 
                 std::cout << "Delete account request received from " << username << ". Now, there are " << session->d_userCount << " users active." << std::endl;
 				// session->broadcast(responseMessage);
+
+                // WRITE LAST???
+                // https://grpc.github.io/grpc/cpp/classgrpc_1_1_write_options.html
                 stream->Write(responseMessage);
                 d_mutex.unlock();
 
@@ -272,8 +286,7 @@ public:
 				std::cout << "Unsupported message type\n";
 			}
 		}
-
-        delete session;
+        std::cout << "Debug 5\n";
 		return Status::OK;
 	}
 
@@ -294,6 +307,7 @@ void runServer()
 {
 	ChatImpl service;
 	ServerBuilder builder;
+    Session *session = new Session();
 	builder.AddListeningPort(SERVER_ADDRESS, grpc::InsecureServerCredentials());
 	builder.RegisterService(&service);
 	std::unique_ptr<Server> server(builder.BuildAndStart());
@@ -304,6 +318,8 @@ void runServer()
 int main(int argc, char **argv)
 {
 	std::srand(std::time(nullptr)); // Use current time as seed for random number generator.
+    session = new Session();
 	runServer();
+    delete session;
 	return 0;
 }
