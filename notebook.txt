@@ -277,3 +277,18 @@ Todo:
 - address this seg fault somehow 
     - I think the stream->WriteLast function here might help? https://grpc.github.io/grpc/cpp/classgrpc_1_1_write_options.html
         - put this in the server code
+        
+
+Feb 20, 2023 late night
+===============================================================================
+Progress:
+- fixed the seg fault put in bugs -- basically, my Session* pointer in server.cc was being deleted from the server program memory once a client logs out
+    - so the line session->join(stream, username, true); is problematic because we try to access a session object that does not exist in memory
+    - fixed it by making Session* session a global macro that does not get initialized with new Session(); until the main function runs
+- implemented logging out a user
+
+TODO and bugs:
+- the implementation of logging out a user when a new person with the same unername logs in is not really robut -- the client (whose login is booted) does not automatically exit out of the program
+    - so we need to fix this
+- in gRPC, implement a logged out user's messages getting saved
+- gRPC documentation and test
