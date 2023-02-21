@@ -258,15 +258,22 @@ Todo:
 - implemented gRPC server and test
 
 
-Feb 20, 2023 afternoon
+Feb 20, 2023 afternoon and evening
 ===============================================================================
 Progress:
 - started gRPC server implementation
+- fixed a segmentation fault issue that comes when more than one client connects to the server and tries to message each other
+- the listaccounts functionality works properly now
+- handle account deletion (sort of...)
 
 Bugs:
-- right now, there is a segmentation fault issue that comes when more than one client connects to the server and tries to message each other
-    - I think it has to do with the way we begin Sessions in the server.cc code
-- the listaccounts functionality also doesn't quite work (but at the very least, it won't trigger a seg fault)
+- right now, the server throws a segmentation fault when you run src/client cat, log cat out, and then (in the same terminal window) log another user (or cat herself) back in
+    - the server hears the account login and deletion okay
+    - it's just that the NEXT time the client program is run on the same terminal window, the server seg faults
+- right now, the program doesn't properly handle what happens when the same user logs in twice on two separate windows
+    - the correct message is sent to the client, but the client isn't prompted to log in with a different username
 
 Todo:
-- address bugs above
+- address this seg fault somehow 
+    - I think the stream->WriteLast function here might help? https://grpc.github.io/grpc/cpp/classgrpc_1_1_write_options.html
+        - put this in the server code
