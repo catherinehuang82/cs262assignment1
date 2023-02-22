@@ -304,3 +304,9 @@ TODO:
     (2) "Another user logged in as your name, so logging you out."
     but these strings could well be also sent as messages between clients...
 - all the TODOs from yesterday
+
+Feb 22, 2023
+===============================================================================
+Progress:
+- make server functions (send message, list accounts, delete user, log out) modular and put into header file
+- implement unit tests for wire protocol functions with google test
