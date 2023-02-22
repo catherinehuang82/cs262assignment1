@@ -277,6 +277,7 @@ Our gRPC server code is modular: we create and return new LoginResponse, ListAcc
 
 ## Performance observations
 - Comparisons over complexity of code
+The gRPC code is arguably more complex, due to the need to marshal and unmarshal the protocol buffer messages.
 - Performance differences
 Our gRPC code runs slower than our wire protocol code. This makes sense for two reasons:
 	1. Our wire protocol code involves directly sending strings over buffers, but gRPC involves marshalling the data into protocol buffer messages.
