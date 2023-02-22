@@ -17,17 +17,16 @@
 #include "server.hh"
 using namespace std;
 
+// allows a user to send a message to another
 string sendMessage(string username, string message, string sender_username, int* client_socket, \
     int &bytesWritten, std::unordered_map<std::string, int> active_users, \
     std::unordered_map<std::string, std::string> &logged_out_users, int i) {
-    //set the string terminating NULL byte on the end of the data read 
+
     auto active_it = active_users.find(username);
     auto logged_out_it = logged_out_users.find(username);
 
     // if username is not found at all (regardless of whether the user is logged in or not)
-    // TODO: change this to just iterating through the account_set set of usernames
     if (active_it == active_users.end() && logged_out_it == logged_out_users.end()) {  
-        // not found  
         string username_not_found_error = "Username does not exist, try sending to another user.";
         bytesWritten = send(
             client_socket[i],
@@ -46,7 +45,7 @@ string sendMessage(string username, string message, string sender_username, int*
         int client_socket_fd = active_it->second;
         message = sender_username + ": " + message;
         printf("Client: %d, username: %s, message: %s\n", i, sender_username.c_str(), message.c_str());
-        // bytesWritten = send(sd, (char*)&msg, strlen(msg), 0);
+
         if (client_socket_fd != 0) {
             printf("sending message to recipient...\n");
             bytesWritten = send(client_socket_fd, message.c_str(), strlen(message.c_str()), 0);
@@ -55,10 +54,11 @@ string sendMessage(string username, string message, string sender_username, int*
     } 
 }
 
+// allows a user to check which accounts exist, including logged out ones, that contain a wildcard
 string listAccounts(string wildcard, int* client_socket, int &bytesWritten, \
     std::set<std::string> &account_set, int i) {    
-    // string with all matching accounts 
-    std::string matching_accounts;
+
+    std::string matching_accounts; //string with all matching accounts
     for (std::string a : account_set)
     {
         // if a username contains wildcard, add to string
@@ -68,7 +68,6 @@ string listAccounts(string wildcard, int* client_socket, int &bytesWritten, \
         }
     }
 
-    // accounts_list_str.pop_back();
     printf("listing accounts...\n");
 
     // send accounts list to client that requested it
@@ -77,11 +76,12 @@ string listAccounts(string wildcard, int* client_socket, int &bytesWritten, \
     return matching_accounts;
 }
 
+// allows a user to delete their own 
 void deleteAccount(int sd, int* client_socket, string sender_username, \
     std::unordered_map<std::string, int> &active_users, std::set<std::string> &account_set, \
     std::unordered_map<std::string, std::string> &logged_out_users, int i) {
-    // delete the entry from the active_users mapping
-    // AND delete the username from the account_set set
+
+    // delete user from the active_users mapping AND account_set set
     active_users.erase(sender_username);
     account_set.erase(sender_username);
     
@@ -96,9 +96,11 @@ void deleteAccount(int sd, int* client_socket, string sender_username, \
     client_socket[i] = 0;
 }
 
+// log out a user, end session
 void quitUser(int sd, int* client_socket, sockaddr_in newSockAddr, socklen_t newSockAddrSize, \
     string sender_username, std::unordered_map<std::string, int> &active_users, \
     std::unordered_map<std::string, std::string> &logged_out_users, int i) {
+
     //Somebody disconnected , get their details and print 
     getpeername(sd , (sockaddr*)&newSockAddr , (socklen_t*)&newSockAddrSize);  
     printf("Client %d disconnected , ip %s , port %d \n" , i, 

@@ -22,8 +22,6 @@
 #include <mutex>
 using namespace std;
 
-//Client side
-
 #define TRUE   1 
 #define FALSE  0 
 // #define PORT 6000 
@@ -57,8 +55,7 @@ void listener_thread(int sd, int bytes_read) {
 int main(int argc, char *argv[])
 {
     //we need 2 things: ip address and port number, in that order
-    if(argc != 4)
-    {
+    if(argc != 4){
         cerr << "Usage: ip_address port username" << endl; exit(0); 
     } //grab the IP address and port number 
     char *serverIp = argv[1]; 
@@ -72,20 +69,15 @@ int main(int argc, char *argv[])
     sockaddr_in sendSockAddr;   
     bzero((char*)&sendSockAddr, sizeof(sendSockAddr)); 
     sendSockAddr.sin_family = AF_INET; 
-    sendSockAddr.sin_addr.s_addr = 
-        inet_addr(inet_ntoa(*(struct in_addr*)*host->h_addr_list));
+    sendSockAddr.sin_addr.s_addr = inet_addr(inet_ntoa(*(struct in_addr*)*host->h_addr_list));
     sendSockAddr.sin_port = htons(port);
-    //set of socket descriptors 
-    // fd_set clientfd;
 
     int clientSd = socket(AF_INET, SOCK_STREAM, 0);
     //try to connect...
-    int status = connect(clientSd,
-                         (sockaddr*) &sendSockAddr, sizeof(sendSockAddr));
+    int status = connect(clientSd,(sockaddr*) &sendSockAddr, sizeof(sendSockAddr));
     if(status < 0)
     {
         cout<<"Error connecting to socket"<<endl;
-        // this line below was previously a break; line, but that caused an error
         exit(0);
     }
 
@@ -97,27 +89,16 @@ int main(int argc, char *argv[])
 
     cout << "Connected to the server!" << endl;
 
-
-
     int bytesRead, bytesWritten = 0;
     std::thread t(listener_thread, clientSd, bytesRead);
 
     struct timeval start1, end1;
     gettimeofday(&start1, NULL);
 
-    while(1)
-    {
-
+    while(1) {
         printf("[Enter operation] >");
         string operation;
         getline(cin, operation);
-        // TODO: handle operation
-        // 1: send to a user
-        // 2: list accounts
-        // 3: delete account
-        // 4: log out
-        // throw an error if operation is not 1-3
-        // in the error, use continue; and not break;
         if (strcmp(operation.c_str(), "1")
         && strcmp(operation.c_str(), "2")
         && strcmp(operation.c_str(), "3")
@@ -147,8 +128,6 @@ int main(int argc, char *argv[])
             printf("[Enter recipient username] >");
             getline(cin, username);
         }
-    
-        // TODO: handle bad username
 
         if (!strcmp(operation.c_str(), "2")) {
             printf("[Enter account matching wildcard] >");
@@ -167,7 +146,6 @@ int main(int argc, char *argv[])
         bytesWritten = send(clientSd, (char*)&msg, strlen(msg), 0);
     }
     gettimeofday(&end1, NULL);
-    // close(clientSd);
     cout << "********Session********" << endl;
     cout << "Bytes written: " << bytesWritten << 
     " Bytes read: " << bytesRead << endl;

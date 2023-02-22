@@ -42,14 +42,12 @@ void sigabrtHandler(int signum) {
 }
 
 int main(int argc, char *argv[]) {
-
     //for the server, we only need to specify a port number
     if(argc != 2)
     {
         cerr << "Usage: port" << endl;
         exit(0);
     }
-    //grab the port number
     int port = atoi(argv[1]);
     //buffer to send and receive messages with
     char msg[1500];
@@ -75,8 +73,7 @@ int main(int argc, char *argv[]) {
     fd_set clientfds;
 
     //initialize all client_socket[] to 0 so not checked 
-    for (i = 0; i < max_clients; i++)  
-    {  
+    for (i = 0; i < max_clients; i++) {  
         client_socket[i] = 0;  
     }  
 
@@ -127,7 +124,6 @@ int main(int argc, char *argv[]) {
         //add child sockets to set 
         for ( i = 0 ; i < max_clients ; i++)  
         {  
-            //socket descriptor 
             sd = client_socket[i];  
                  
             //if valid socket descriptor then add to read list 
@@ -159,7 +155,7 @@ int main(int argc, char *argv[]) {
 
 
             // ask client for username (client will send upon connecting to the server)
-            memset(&msg, 0, sizeof(msg));//clear the buffer
+            memset(&msg, 0, sizeof(msg)); //clear the buffer
             recv(new_socket, (char*)&msg, sizeof(msg), 0);
             std::string new_client_username(msg);
 
@@ -168,7 +164,6 @@ int main(int argc, char *argv[]) {
                 memset(&msg, 0, sizeof(msg));
                 const char* force_logout_msg = "Another user logged in as your name, so logging you out.";
                 strcpy(msg, force_logout_msg);
-                // send(new_socket, (char*)&msg, strlen(msg), 0);
                 send(existing_login_sd, (char*)&msg, sizeof(msg), 0);
             }
             active_users[new_client_username] = new_socket;
@@ -180,9 +175,8 @@ int main(int argc, char *argv[]) {
             auto it_check_undelivered = logged_out_users.find(new_client_username);
             if (it_check_undelivered != logged_out_users.end()) {
                 string undelivered_messages = it_check_undelivered->second;
-                memset(&msg, 0, sizeof(msg));//clear the buffer
+                memset(&msg, 0, sizeof(msg)); //clear the buffer
                 strcpy(msg, undelivered_messages.c_str());
-                // send(new_socket, (char*)&msg, strlen(msg), 0);
                 send(new_socket, undelivered_messages.c_str(), strlen(undelivered_messages.c_str()), 0);
             }
 
@@ -206,9 +200,6 @@ int main(int argc, char *argv[]) {
         }
 
         int bytesRead, bytesWritten = 0;
-        // while(1) {
-        //receive a message from a client (listen)
-        // cout << "Awaiting client response..." << endl;
 
         // clear the buffer
         memset(&msg, 0, sizeof(msg));
@@ -217,8 +208,7 @@ int main(int argc, char *argv[]) {
             sd = client_socket[i];
 
             if (FD_ISSET( sd , &clientfds))  {
-                //Check if it was for closing , and also read the 
-                //incoming message 
+                //Check if it was for closing , and also read the incoming message 
                 bytesRead = recv(sd, (char*)&msg, sizeof(msg), 0);
                 string msg_string(msg);
                 printf("msg string: %s\n", msg_string.c_str());
@@ -233,7 +223,6 @@ int main(int argc, char *argv[]) {
                         sender_username = it_find_sender->first;
                     }
                 }
-                // TODO: throw an error if it_find_sender == active_users.end()
 
                 if (operation == '4'){ //quit 
                     quitUser(sd, client_socket, newSockAddr, newSockAddrSize, sender_username, i);
