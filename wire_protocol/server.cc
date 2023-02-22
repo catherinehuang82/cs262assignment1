@@ -225,10 +225,10 @@ int main(int argc, char *argv[]) {
                 }
 
                 if (operation == '4'){ //quit 
-                    quitUser(sd, client_socket, newSockAddr, newSockAddrSize, sender_username, i);
+                    quitUser(sd, client_socket, newSockAddr, newSockAddrSize, sender_username, active_users, logged_out_users, i);
                     continue;
                 } else if (operation == '3') { //delete account
-                    deleteAccount(sd, client_socket, sender_username, i);
+                    deleteAccount(sd, client_socket, sender_username, active_users, account_set, logged_out_users, i);
                     continue;
                 }
 
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
                 if (operation == '2') { // list accounts
                     listAccounts(message, client_socket, bytesWritten, account_set, i);
                 } else if (operation == '1') { // send message
-                    sendMessage(username, message, sender_username, client_socket, bytesWritten, i);
+                    sendMessage(username, message, sender_username, client_socket, bytesWritten, active_users, logged_out_users, i);
                 }
             }
         }
