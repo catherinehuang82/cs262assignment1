@@ -32,6 +32,10 @@ message Message {
     string message = 3;
 }
 
+message MessageList {
+    repeated Message messages = 1;
+}
+
 message ListAccountsRequest {
     string username = 1;
     string wildcard = 2;
