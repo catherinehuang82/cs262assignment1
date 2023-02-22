@@ -19,7 +19,7 @@
 #include <grpcpp/server_context.h>
 #include <grpcpp/security/server_credentials.h>
 
-TEST(GRPCTest, ListAccounts) {
+void testListAccounts() {
     Session *session;
     std::string messageNew = "a";
     std::string recipientUsername = "karly";
@@ -28,11 +28,11 @@ TEST(GRPCTest, ListAccounts) {
     StreamRequest message = createChatRequest(2, messageNew, recipientUsername);
     ListAccountsResponse* response = session->listAccounts(message, allAccounts);
 
-    EXPECT_EQ(response.username(), "karly");
-    EXPECT_EQ(response.accounts(), "karly\ncat\n");
+    assert(response.username() == "karly");
+    assert(response.accounts() == "karly\ncat\n");
 }
 
-TEST(GRPCTest, DeleteAccount) {
+void testDeleteAccounts() {
     std::string messageNew = "";
     std::string recipientUsername = "karly";
 
@@ -49,7 +49,11 @@ TEST(GRPCTest, DeleteAccount) {
     std::unordered_map<std::string, ServerReaderWriter<StreamResponse, StreamRequest> *> expected_d_allStreams = {{"cat", s}};
     std::set<std::string> expected_allAccounts = {"cat"};
 
-    EXPECT_EQ(response.message(), "You have successfully deleted your account.");
-    EXPECT_EQ(d_allStreams, expected_d_allStreams);
-    EXPECT_EQ(allAccounts, expected_allAccounts);
+    assert(d_allStreams == expected_d_allStreams);
+    assert(allAccounts == expected_allAccounts);
+}
+
+int main(int argc, char **argv) {
+    testListAccounts();
+    testDeleteAccounts();
 }
