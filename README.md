@@ -1,7 +1,5 @@
 # CS 262 Design Exercise 1: Wire Protocols
 
-# Installation and Setup Instructions
-
 # Wire Protocol Usage and Functionality
 
 ## Compiling files:
@@ -33,4 +31,22 @@ After each action, the server will prompt you for an operation. You can choose:
     - you'll be prompted to hit enter to confirm deletion
 - 4: log out
 
+## Notes on expected functionality
+- Up to 10 clients can connect to the server at a time
+- A message can be up to 1500 chars long
+- Messages can be sent to active and logged out users
+- Upon login, any messages sent in your absence will be delivered
+- If you delete your account, any messages you sent previously that have
+  not yet been delivered will still be delivered
+
+## Testing
+We implemented unit tests with the help of GoogleTest. You can find installation instructions [here](https://google.github.io/googletest/quickstart-cmake.html) and introduction to writing GoogleTests [here](https://google.github.io/googletest/primer.html). 
+
 # gRPC Usage and Functionality
+
+## Installation and Setup Instructions
+
+## Performance observations
+- Comparisons over complexity of code
+- Performance differences
+- Size of buffers being sent back and forth between client/server
