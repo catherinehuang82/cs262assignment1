@@ -41,7 +41,7 @@ void sigabrtHandler(int signum) {
     cout << "Interrupt signal (" << signum << ") received.\n";
 }
 
-void quitUser(int &sd, int[] &client_socket, sockaddr_in newSockAddr, socklen_t newSockAddrSize, string sender_username) {
+void quitUser(int &sd, int[] &client_socket, sockaddr_in newSockAddr, socklen_t newSockAddrSize, string sender_username, int i) {
     //Somebody disconnected , get their details and print 
     getpeername(sd , (sockaddr*)&newSockAddr , (socklen_t*)&newSockAddrSize);  
     printf("Client %d disconnected , ip %s , port %d \n" , i, 
@@ -56,7 +56,7 @@ void quitUser(int &sd, int[] &client_socket, sockaddr_in newSockAddr, socklen_t 
     logged_out_users[sender_username] = "Messages you missed when you were gone:\n";
 }
 
-void deleteAccount(int[] &client_socket, string sender_username) {
+void deleteAccount(int[] &client_socket, string sender_username, int i) {
     // delete the entry from the active_users mapping
     // AND delete the username from the account_set set
     active_users.erase(sender_username);
@@ -73,7 +73,7 @@ void deleteAccount(int[] &client_socket, string sender_username) {
     client_socket[i] = 0;
 }
 
-void listAccounts(string wildcard, int[] &client_socket) {    
+void listAccounts(string wildcard, int[] &client_socket, int i) {    
     // string with all matching accounts 
     std::string matching_accounts;
     for (std::string a : account_set)
@@ -93,7 +93,7 @@ void listAccounts(string wildcard, int[] &client_socket) {
         strlen((char*)&matching_accounts), 0);
 }
 
-void sendMessage(string username, string message, string sender_username, int[] &client_socket) {
+void sendMessage(string username, string message, string sender_username, int[] &client_socket, int i) {
     //set the string terminating NULL byte on the end of the data read 
     auto active_it = active_users.find(username);
     auto logged_out_it = logged_out_users.find(username);
@@ -322,10 +322,10 @@ int main(int argc, char *argv[]) {
                 // TODO: throw an error if it_find_sender == active_users.end()
 
                 if (operation == '4'){ //quit 
-                    quitUser(sd, client_socket, newSockAddr, newSockAddrSize, sender_username);
+                    quitUser(sd, client_socket, newSockAddr, newSockAddrSize, sender_username, i);
                     continue;
                 } else if (operation == '3') { //delete account
-                    deleteAccount(client_socket, sender_username);
+                    deleteAccount(client_socket, sender_username, i);
                     continue;
                 }
 
@@ -341,9 +341,9 @@ int main(int argc, char *argv[]) {
                 printf("message length: %lu\n", strlen(message.c_str()));
 
                 if (operation == '2') { // list accounts
-                    listAccounts(message, client_socket);
+                    listAccounts(message, client_socket, i);
                 } else if (operation == '1') { // send message
-                    sendMessage(username, message, sender_username, client_socket);
+                    sendMessage(username, message, sender_username, client_socket, i);
                 }
             }
         }
