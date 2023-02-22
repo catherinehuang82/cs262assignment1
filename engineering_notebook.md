@@ -311,3 +311,9 @@ Progress:
 Bugs:
 - we ran into some issues using googletest and mocks to end-to-end test the server, but we are nonetheless continuing to try other ways to unit test
 - we plan to make our server's StreamRequest handling (and StreamResponse creating) code more modular, so that we can unit test its individual components
+
+Feb 22, 2023
+===============================================================================
+Progress:
+- modularized gRPC functionality
+- implemented unit tests for gRPC server
