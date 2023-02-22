@@ -1,4 +1,8 @@
-# cs262assignment1
+# CS 262 Design Exercise 1: Wire Protocols
+
+# Installation and Setup Instructions
+
+# Wire Protocol Usage and Functionality
 
 ## Compiling files:
 Run `g++ -o server server2.cc --std=c++11` and `g++ -o client client.cc --std=c++11`.
@@ -9,7 +13,7 @@ On one terminal window, run `./server port` where an example port is `6000`.
 The server is running and waiting for clients to connect.
 
 ## Connecting a client to the server:
-From another terminal window, run `./client ip port username` where `ip` should be the ip of the server, `port` is the one specified by the server, and `username` is your username. If the username has never been usedbefore, an account will be created. If it has been used before, you will be logged into youraccount and any messages received while logged out will be delivered.
+From another terminal window, run `./client ip port username` where `ip` should be the ip of the server, `port` is the one specified by the server, and `username` is your username. If the username has never been used before, an account will be created. If it has been used before, you will be logged into your account, and any messages received while logged out will be delivered.
 
 Note: you should not log in with the same username on two clients at the same time.
 
@@ -28,3 +32,5 @@ After each action, the server will prompt you for an operation. You can choose:
 - 3: delete account
     - you'll be prompted to hit enter to confirm deletion
 - 4: log out
+
+# gRPC Usage and Functionality
