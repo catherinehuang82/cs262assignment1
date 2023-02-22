@@ -39,23 +39,19 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 
-// const std::string SERVER_ADDRESS = "0.0.0.0:50051";
 
-// A object of this class represents a chat session.
-// in our implementation, there is only one chat session where all repicients participate
+// an object of this class represents a chat session where all repicients participate.
+// used to help modularize the ChatImpl chat implementation class below
 class Session
 {
-    // perhaps? maybe we need one chat stream per username though
-	// std::shared_ptr<std::string, ServerReaderWriter<StreamResponse, StreamRequest>> chat_stream;
+    // used for safe read/write access to client streams data
 	std::mutex d_mutex;
-	// std::string d_user;
 
 public:
     // session constructor
-    // we no longer need a session ID because we assume only one session
 	Session() :  d_mutex(), d_userCount(0) {
     }
-
+    // getter methods
     std::unordered_map<std::string, ServerReaderWriter<StreamResponse, StreamRequest> *> get_d_AllStreams() {
         return d_allStreams;
     }
@@ -72,28 +68,57 @@ public:
         return d_userCount;
     }
     
+    // data structures used to keep track of usernames and information associated with them
+
+    // map of each actively logged in username to the stream through which they send requests and receive responses (to and from the server)
+    // only actively logged in users have streams associated with them
     std::unordered_map<std::string, ServerReaderWriter<StreamResponse, StreamRequest> *> d_allStreams;
+
+    // set of all current account usernames (of accounts both logged in and not logged in, as long as they were not deleted)
     std::set<std::string> allAccounts;
+
+    // map of each logged out user's username to a repeated field of Messages sent to that user while they were gone
+
+    // the messages are stored in a MessageList proto with a repeated Message field,
+    // but are passed to the client as a Message, whose string message field is the concatenation of all senders
+    // and messages that they received when they were gone
     std::unordered_map<std::string, MessageList> logged_out_users; // username : undelivered messages
-    int d_userCount; // number of active (logged in) users
 
-    void broadcast(StreamResponse message);
+    // number of active (logged in) users
+    int d_userCount;
 
-    void send_message(std::string recipient_username, StreamResponse message);
+    // create the LoginResponse object to then be processed in the Server::join() function
+    LoginResponse* login(const std::string &username);
 
+    // handles a new login, either of a new user or an existing user
+    // if new user, the first login is equivalent to account creation followed by login
+    // if old user, the user is sent any messages that they missed while they were gone
+    // if same user (as another logged in user with the same username), that other user is automatically logged out, and this new login stays active
 	void join(ServerReaderWriter<StreamResponse, StreamRequest> *stream, const std::string &username);
 
-	void leave(const std::string &username);
+    // create the ListAccountsResponse object when client asks to list accounts
+    ListAccountsResponse* listAccounts(StreamRequest message);
+
+    // create the LogoutResponse object when client asks to log out
+    LogoutResponse* logout(StreamRequest message);
+
+    // create the DeleteAccountResponse object when client asks to delete their account
+    DeleteAccountResponse* deleteAccount(StreamRequest message);
 
 	int userCount();
 };
 
 class ChatImpl final : public Chat::Service
 {
-	// std::unordered_map<std::string, std::unique_ptr<Session>> d_sessions;
+	// used for safe read/write access to client streams data
 	std::mutex d_mutex;
 
 public:
+    // method that handles all the server logic for chat: handles receiving of all StreamRequests and sending of all StreamResponses for the four operations:
+    // 1. messaging another user
+    // 2. account listing
+    // 3. account deletion
+    // 4. logout
 	Status ChatStream(ServerContext *context, ServerReaderWriter<StreamResponse, StreamRequest> *stream) override;
 };
 
