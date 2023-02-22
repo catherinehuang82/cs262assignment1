@@ -46,7 +46,6 @@ public:
 		StreamRequest n;
 		if (type == 1) {
 			// login request
-			// TODO: consider getting rid of this case and just parsing login info on command line
 			LoginRequest *login_request = new LoginRequest();
 			login_request->set_username(username);
 			n.set_allocated_login_request(login_request);
@@ -68,7 +67,6 @@ public:
 		}
 		else if (type == 4)
 		{   // delete account request
-			// TODO: implement!
             DeleteAccountRequest *deleteAccount_request = new DeleteAccountRequest();
             deleteAccount_request->set_username(username);
             n.set_allocated_deleteaccount_request(deleteAccount_request);
@@ -85,7 +83,6 @@ public:
 	/*Client Requests*/
 	void makeRequests(std::shared_ptr<ClientReaderWriter<StreamRequest, StreamResponse>> stream)
 	{
-
 		// handle login
 		stream->Write(createChatRequest(1, username));
 		std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -142,6 +139,7 @@ public:
 				std::cout << "Message body: " << message_body << std::endl;
 				stream->Write(createChatRequest(2, message_body, recipient));
 			} else {
+				// error handling, guide user to try again
 				std::cout << "Invalid input. Please type one of the following.\n\n";
 				std::cout << "1) To send a new message, type 1 and press Enter.\n";
 				std::cout << "2) To list accounts, type 2 and press Enter.\n";
@@ -161,7 +159,7 @@ public:
 		{
 			if (serverResponse.has_listaccounts_response())
 			{
-				// list accounts reponse
+				// list accounts response
 				std::cout << "\r(" << serverResponse.listaccounts_response().username() << " has requested to list accounts)\n";
 				std::cout << "Accounts list:\n" + serverResponse.listaccounts_response().accounts() << std::endl;
 			} else if (serverResponse.has_login_response())
@@ -176,6 +174,7 @@ public:
 				break;
 			}
 			else if (serverResponse.has_deleteaccount_response()) {
+				// notify the user that they have deleted their account
 				std::cout << "\r(" << serverResponse.deleteaccount_response().message() << ")\n";
 				break;
 			}
@@ -196,7 +195,7 @@ public:
 		ClientContext context;
 		std::shared_ptr<ClientReaderWriter<StreamRequest, StreamResponse>> stream(stub_->ChatStream(&context));
 		
-		std::thread writer(&ChatClient::makeRequests, this, stream); // Separate thread to make Requests to Server.
+		std::thread writer(&ChatClient::makeRequests, this, stream); // Separate thread to make Requests to Server
 
 		processResponses(stream); //Process Response from Server
 		writer.join();
