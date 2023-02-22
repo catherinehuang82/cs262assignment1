@@ -40,6 +40,14 @@ using grpc::Status;
 const std::string SERVER_ADDRESS = "0.0.0.0:50051";
 Session *session;
 
+LoginResponse* Session::login(const std::string &username) {
+    LoginResponse *newLogin = new LoginResponse();
+    newLogin->set_username(username);
+    newLogin->set_message("You have successfully logged in.");
+    ++d_userCount;
+    return newLogin;
+}
+
 void Session::join(ServerReaderWriter<StreamResponse, StreamRequest> *stream, const std::string &username)
 {
     StreamResponse responseMessage;
@@ -47,19 +55,23 @@ void Session::join(ServerReaderWriter<StreamResponse, StreamRequest> *stream, co
     if (d_allStreams.find(username) != d_allStreams.end())
     // if user is already logged in, we want to log out that existing login, so that the new login remains active
     {
+        d_mutex.lock();
         LogoutResponse *forced_logout_response = new LogoutResponse();
         forced_logout_response->set_username(username);
         forced_logout_response->set_message("There is a new login for your username " + username + ", so logging you out.");
         responseMessage.set_allocated_logout_response(forced_logout_response);
+
+        // write a logout message...
         d_allStreams[username]->Write(responseMessage);
-        --d_userCount;
+
+        // ...then delete username from the mapping of active sessions (will add back later in this method)
         d_allStreams.erase(username);
+        --d_userCount;
+        d_mutex.unlock();
     }
 
     // process the new login
     std::cout << "Successful login for user: " << username << "\n";
-    LoginResponse *newLogin = new LoginResponse();
-    newLogin->set_username(username);
 
     d_mutex.lock();
     // store this account into accounts list (no matter whether or not said account is already there)
@@ -69,6 +81,9 @@ void Session::join(ServerReaderWriter<StreamResponse, StreamRequest> *stream, co
     // this stream recording is so that the server sends message to the correct recipient client,
     // via that client's stream
     d_allStreams[username] = stream;
+    
+    // create a LoginResponse object to send back to the client
+    LoginResponse *newLogin = login(username);
     d_mutex.unlock();
 
     // if the user was previously logged in, we send them any messages they missed...
@@ -91,14 +106,65 @@ void Session::join(ServerReaderWriter<StreamResponse, StreamRequest> *stream, co
     }
 
     // tell client they have successfully logged in
-    newLogin->set_message("You have successfully logged in.");
     responseMessage.set_allocated_login_response(newLogin);
     stream->Write(responseMessage);
 }
 
-void Session::leave(const std::string &username)
-{
+ListAccountsResponse* Session::listAccounts(StreamRequest message) {
+    std::string username = message.listaccounts_request().username();
+    std::string wildcard = message.listaccounts_request().wildcard();
+
+    std::string matching_accounts;
+    // iterate through all usernames (both active and logged out)
+    // and send back to client the usernames for which wildcard is a substring
+    for (std::string a : allAccounts)
+    {
+        std::cout << "Here\n";
+        std::cout << a << "\n";
+        // if a username contains wildcard, add to string
+        if (a.find(wildcard) != std::string::npos) {
+            matching_accounts += a;
+            matching_accounts += '\n';
+        }
+    }
+
+    // create a ListAccountResponse object to store the information
+    ListAccountsResponse *listAccounts_response = new ListAccountsResponse();
+    listAccounts_response->set_username(username);
+    listAccounts_response->set_accounts(matching_accounts);
+    return listAccounts_response;
+}
+
+LogoutResponse* Session::logout(StreamRequest message) {
+    std::string username = message.logout_request().username();
+
+    LogoutResponse *newLogout = new LogoutResponse;
+    newLogout->set_username(username);
+    newLogout->set_message("You have successfully logged out.");
+
+    // erase username from active streams mapping
+    // note that allAccounts still has this username
+    d_allStreams.erase(username);
+
     --d_userCount;
+    return newLogout;
+}
+
+DeleteAccountResponse* Session::deleteAccount(StreamRequest message) {
+    std::string username = message.deleteaccount_request().username();
+
+    DeleteAccountResponse *newDeleteAccount = new DeleteAccountResponse;
+
+    newDeleteAccount->set_message("You have successfully deleted your account.");
+    newDeleteAccount->set_username(username);
+
+    // erase username from active streams mapping
+    // AND from the set of allAccounts
+    d_allStreams.erase(username);
+    allAccounts.erase(username);
+
+    --d_userCount;
+    return newDeleteAccount;
 }
 
 int Session::userCount()
@@ -132,28 +198,15 @@ Status ChatImpl::ChatStream(ServerContext *context, ServerReaderWriter<StreamRes
             std::cout << "List accounts request received\n";
 
             username = message.listaccounts_request().username();
-            std::string wildcard = message.listaccounts_request().wildcard();
-
-            std::string matching_accounts;
-            // iterate through all usernames (both active and logged out)
-            // and send back to client the usernames for which wildcard is a substring
-            for (std::string a : session->allAccounts)
-            {
-                // if a username contains wildcard, add to string
-                if (a.find(wildcard) != std::string::npos) {
-                    matching_accounts += a;
-                    matching_accounts += '\n';
-                }
-            }
 
             std::cout << "Listing accounts for user " << username << "\n";
 
             d_mutex.lock();
-            // send accounts list to the client that requested it
-            ListAccountsResponse *listAccounts_response = new ListAccountsResponse();
-            listAccounts_response->set_username(username);
-            listAccounts_response->set_accounts(matching_accounts);
+            
+            // call the member method in the Session class to generate a ListAccountsResponse
+            ListAccountsResponse *listAccounts_response = session->listAccounts(message);
 
+            // send accounts list to the client that requested it
             responseMessage.set_allocated_listaccounts_response(listAccounts_response);
             stream->Write(responseMessage);
             d_mutex.unlock();
@@ -201,15 +254,9 @@ Status ChatImpl::ChatStream(ServerContext *context, ServerReaderWriter<StreamRes
             username = message.logout_request().username();
 
             d_mutex.lock();
-            LogoutResponse *newLogout = new LogoutResponse;
-            newLogout->set_username(username);
-            newLogout->set_message("You have successfully logged out.");
-            responseMessage.set_allocated_logout_response(newLogout);
+            LogoutResponse *newLogout = session->logout(message);
 
-            // erase username from active streams mapping
-            // note that allAccounts still has this username
-            session->d_allStreams.erase(username);
-            session->leave(username);
+            responseMessage.set_allocated_logout_response(newLogout);
 
             // print out how many active users there are
             std::cout << "Logout request received from " << username << ". Now, there are " << session->d_userCount << " users active.\n";
@@ -230,17 +277,9 @@ Status ChatImpl::ChatStream(ServerContext *context, ServerReaderWriter<StreamRes
             username = message.deleteaccount_request().username();
 
             d_mutex.lock();
-            DeleteAccountResponse *newDeleteAccount = new DeleteAccountResponse;
-            newDeleteAccount->set_username(username);
-            newDeleteAccount->set_message("You have successfully deleted your account.");
+            DeleteAccountResponse *newDeleteAccount = session->deleteAccount(message);
+
             responseMessage.set_allocated_deleteaccount_response(newDeleteAccount);
-
-            // erase username from active streams mapping
-            // AND from the set of allAccounts
-            session->d_allStreams.erase(username);
-            session->allAccounts.erase(username);
-
-            session->leave(username);
 
             std::cout << "Delete account request received from " << username << ". Now, there are " << session->d_userCount << " users active.\n";
             stream->Write(responseMessage);
