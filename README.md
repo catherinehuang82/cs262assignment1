@@ -1,5 +1,8 @@
 # CS 262 Design Exercise 1: Wire Protocols
 
+Below is a manual with setup instructions, functionality, and engineering decisions of both our wire protocol and gRPC implementations.
+For a day-by-day tracker of our bugs and progress, see our [engineering notebook](https://github.com/catherinehuang82/cs262assignment1/blob/main/engineering_notebook.md).
+
 # File Structure
 ```
 cs262assignment1
