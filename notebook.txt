@@ -305,8 +305,11 @@ TODO:
     but these strings could well be also sent as messages between clients...
 - all the TODOs from yesterday
 
-Feb 22, 2023
+Feb 22, 2023 evening
 ===============================================================================
 Progress:
 - make server functions (send message, list accounts, delete user, log out) modular and put into header file
 - implement unit tests for wire protocol functions with google test
+- in gRPC, implemented a logged out user's messages getting saved, and sending the user these messages when they log back in
+- gRPC documentation and test
+
