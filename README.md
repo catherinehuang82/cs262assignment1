@@ -46,6 +46,16 @@ We implemented unit tests with the help of GoogleTest. You can find installation
 
 ### Installation and Setup Instructions
 
+### Compiling Files
+
+### Setting up and connecting to server
+
+### Communication between clients & other functionality
+
+### Notes on expected functionality
+
+### Testing
+
 ### Performance observations
 - Comparisons over complexity of code
 - Performance differences
