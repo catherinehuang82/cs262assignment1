@@ -110,7 +110,7 @@ void Session::join(ServerReaderWriter<StreamResponse, StreamRequest> *stream, co
     stream->Write(responseMessage);
 }
 
-ListAccountsResponse* Session::listAccounts(StreamRequest message) {
+ListAccountsResponse* Session::listAccounts(StreamRequest message, std::set<std::string> &allAccounts) {
     std::string username = message.listaccounts_request().username();
     std::string wildcard = message.listaccounts_request().wildcard();
 
@@ -150,7 +150,7 @@ LogoutResponse* Session::logout(StreamRequest message) {
     return newLogout;
 }
 
-DeleteAccountResponse* Session::deleteAccount(StreamRequest message) {
+DeleteAccountResponse* Session::deleteAccount(StreamRequest message, std::unordered_map<std::string, ServerReaderWriter<StreamResponse, StreamRequest> *> &expected_d_allStreams, std::set<std::string> &allAccounts) {
     std::string username = message.deleteaccount_request().username();
 
     DeleteAccountResponse *newDeleteAccount = new DeleteAccountResponse;
@@ -204,7 +204,7 @@ Status ChatImpl::ChatStream(ServerContext *context, ServerReaderWriter<StreamRes
             d_mutex.lock();
             
             // call the member method in the Session class to generate a ListAccountsResponse
-            ListAccountsResponse *listAccounts_response = session->listAccounts(message);
+            ListAccountsResponse *listAccounts_response = session->listAccounts(message, allAccounts);
 
             // send accounts list to the client that requested it
             responseMessage.set_allocated_listaccounts_response(listAccounts_response);
@@ -277,7 +277,7 @@ Status ChatImpl::ChatStream(ServerContext *context, ServerReaderWriter<StreamRes
             username = message.deleteaccount_request().username();
 
             d_mutex.lock();
-            DeleteAccountResponse *newDeleteAccount = session->deleteAccount(message);
+            DeleteAccountResponse *newDeleteAccount = session->deleteAccount(message, d_allStreams, allAccounts);
 
             responseMessage.set_allocated_deleteaccount_response(newDeleteAccount);
 

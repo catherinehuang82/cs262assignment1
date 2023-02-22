@@ -97,13 +97,13 @@ public:
 	void join(ServerReaderWriter<StreamResponse, StreamRequest> *stream, const std::string &username);
 
     // create the ListAccountsResponse object when client asks to list accounts
-    ListAccountsResponse* listAccounts(StreamRequest message);
+    ListAccountsResponse* listAccounts(StreamRequest message, std::set<std::string> &allAccounts);
 
     // create the LogoutResponse object when client asks to log out
     LogoutResponse* logout(StreamRequest message);
 
     // create the DeleteAccountResponse object when client asks to delete their account
-    DeleteAccountResponse* deleteAccount(StreamRequest message);
+    DeleteAccountResponse* deleteAccount(StreamRequest message, std::unordered_map<std::string, ServerReaderWriter<StreamResponse, StreamRequest> *> &expected_d_allStreams, std::set<std::string> &allAccounts);
 
 	int userCount();
 };
