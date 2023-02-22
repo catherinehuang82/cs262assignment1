@@ -273,8 +273,13 @@ Our server does its job mostly through the `class ChatImpl final : public Chat::
 In the `Session` class, we store (1) a mapping of active clients to their streams, (2) a mapping of logged out users to a `MessageList` with a repeated `Message` field, storing the messages they received while they were gone, and (3) a set of both active and inactive usernames. We also keep track of the number of active users. We modify these storage data structures and values thread-safely, wrapping write operations with a `mutex` that is a member of the `Session` class.
 
 ## Testing
+Our gRPC server code is modular: we create and return new LoginResponse, ListAccountsResponse, LogoutResponse, and DeleteAccountResponse objects in separate functions, meaning we can test them! We used assert statements in our test file to check the correctness of the stream response objects, given stream request objects that we pass in.
 
 ## Performance observations
 - Comparisons over complexity of code
 - Performance differences
+Our gRPC code runs slower than our wire protocol code. This makes sense for two reasons:
+	1. Our wire protocol code involves directly sending strings over buffers, but gRPC involves marshalling the data into protocol buffer messages.
+	2. We implemented gRPC with a two-second wait between each client's subsequent operations.
 - Size of buffers being sent back and forth between client/server
+In our wire protocol implementation, the size of the buffer used to send strings is at most 1500 bytes. The gRPC implementation sends StreamRequests and StreamResponses in bytes of 64 bytes each. This means that the buffer size is smaller for gRPC.
